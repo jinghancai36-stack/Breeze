@@ -1,0 +1,335 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000001 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* Models.swift */; };
+		A00000000000000000000002 /* SMCDataFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* SMCDataFormat.swift */; };
+		A00000000000000000000003 /* SMCConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* SMCConnection.swift */; };
+		A00000000000000000000004 /* SensorCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* SensorCatalog.swift */; };
+		A00000000000000000000005 /* HardwareMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* HardwareMonitor.swift */; };
+		A00000000000000000000006 /* BreezeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* BreezeApp.swift */; };
+		A00000000000000000000007 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* AppState.swift */; };
+		A00000000000000000000008 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* MenuBarView.swift */; };
+		A00000000000000000000009 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* Preferences.swift */; };
+		A0000000000000000000000A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* SettingsView.swift */; };
+		A0000000000000000000000B /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* LaunchAtLoginController.swift */; };
+		A0000000000000000000000C /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000D /* IOKit.framework */; };
+		A0000000000000000000000D /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000E /* ServiceManagement.framework */; };
+		A0000000000000000000000E /* HelperConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* HelperConnection.swift */; };
+		A0000000000000000000000F /* BreezeHelperProtocol.swift in App Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* BreezeHelperProtocol.swift */; };
+		A00000000000000000000010 /* BreezeHelperProtocol.swift in Helper Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* BreezeHelperProtocol.swift */; };
+		A00000000000000000000011 /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* HelperService.swift */; };
+		A00000000000000000000012 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* main.swift */; };
+		A00000000000000000000013 /* BreezeHelper in Embed Helper Tools */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* BreezeHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A00000000000000000000014 /* com.cai.Breeze.Helper.plist in Copy LaunchDaemon Plist */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* com.cai.Breeze.Helper.plist */; };
+		A00000000000000000000015 /* Security.framework in App Frameworks */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* Security.framework */; };
+		A00000000000000000000016 /* Security.framework in Helper Frameworks */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* Security.framework */; };
+		A00000000000000000000017 /* AutomaticControlRestorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* AutomaticControlRestorer.swift */; };
+		A00000000000000000000018 /* SMCRestoreConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* SMCRestoreConnection.swift */; };
+		A00000000000000000000019 /* IOKit.framework in Helper Frameworks */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000D /* IOKit.framework */; };
+		A0000000000000000000001A /* ManualFanController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* ManualFanController.swift */; };
+		A0000000000000000000001B /* ControlLeaseWatchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001A /* ControlLeaseWatchdog.swift */; };
+		A0000000000000000000001C /* SystemPowerObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001B /* SystemPowerObserver.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		J00000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = G00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00000000000000000000002;
+			remoteInfo = BreezeHelper;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F00000000000000000000005 /* Embed Helper Tools */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (A00000000000000000000013 /* BreezeHelper in Embed Helper Tools */, );
+			name = "Embed Helper Tools";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000006 /* Copy LaunchDaemon Plist */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchDaemons;
+			dstSubfolderSpec = 1;
+			files = (A00000000000000000000014 /* com.cai.Breeze.Helper.plist in Copy LaunchDaemon Plist */, );
+			name = "Copy LaunchDaemon Plist";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		B00000000000000000000001 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* SMCDataFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCDataFormat.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* SMCConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCConnection.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 /* SensorCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorCatalog.swift; sourceTree = "<group>"; };
+		B00000000000000000000005 /* HardwareMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareMonitor.swift; sourceTree = "<group>"; };
+		B00000000000000000000006 /* BreezeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreezeApp.swift; sourceTree = "<group>"; };
+		B00000000000000000000007 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		B00000000000000000000008 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		B00000000000000000000009 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		B0000000000000000000000A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B0000000000000000000000B /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
+		B0000000000000000000000C /* Breeze-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Breeze-Info.plist"; sourceTree = "<group>"; };
+		B0000000000000000000000D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		B0000000000000000000000E /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
+		B0000000000000000000000F /* Breeze.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Breeze.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000010 /* HelperConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperConnection.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* BreezeHelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreezeHelperProtocol.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* HelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperService.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		B00000000000000000000014 /* com.cai.Breeze.Helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = com.cai.Breeze.Helper.plist; sourceTree = "<group>"; };
+		B00000000000000000000015 /* BreezeHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = BreezeHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000016 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		B00000000000000000000017 /* AutomaticControlRestorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticControlRestorer.swift; sourceTree = "<group>"; };
+		B00000000000000000000018 /* SMCRestoreConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMCRestoreConnection.swift; sourceTree = "<group>"; };
+		B00000000000000000000019 /* ManualFanController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualFanController.swift; sourceTree = "<group>"; };
+		B0000000000000000000001A /* ControlLeaseWatchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlLeaseWatchdog.swift; sourceTree = "<group>"; };
+		B0000000000000000000001B /* SystemPowerObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPowerObserver.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C00000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0000000000000000000000C /* IOKit.framework in Frameworks */,
+				A0000000000000000000000D /* ServiceManagement.framework in Frameworks */,
+				A00000000000000000000015 /* Security.framework in App Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000016 /* Security.framework in Helper Frameworks */, A00000000000000000000019 /* IOKit.framework in Helper Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D00000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000002 /* Sources */,
+				D00000000000000000000005 /* Config */,
+				D00000000000000000000006 /* Frameworks */,
+				D00000000000000000000007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D00000000000000000000002 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000003 /* BreezeApp */,
+				D00000000000000000000004 /* BreezeHardware */,
+				D00000000000000000000008 /* BreezeIPC */,
+				D00000000000000000000009 /* BreezeHelper */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000003 /* BreezeApp */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000006 /* BreezeApp.swift */,
+				B00000000000000000000007 /* AppState.swift */,
+				B00000000000000000000008 /* MenuBarView.swift */,
+				B00000000000000000000009 /* Preferences.swift */,
+				B0000000000000000000000A /* SettingsView.swift */,
+				B0000000000000000000000B /* LaunchAtLoginController.swift */,
+				B00000000000000000000010 /* HelperConnection.swift */,
+			);
+			path = BreezeApp;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000004 /* BreezeHardware */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000001 /* Models.swift */,
+				B00000000000000000000002 /* SMCDataFormat.swift */,
+				B00000000000000000000003 /* SMCConnection.swift */,
+				B00000000000000000000004 /* SensorCatalog.swift */,
+				B00000000000000000000005 /* HardwareMonitor.swift */,
+			);
+			path = BreezeHardware;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000005 /* Config */ = {
+			isa = PBXGroup;
+			children = (B0000000000000000000000C /* Breeze-Info.plist */, B00000000000000000000014 /* com.cai.Breeze.Helper.plist */);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000006 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000D /* IOKit.framework */,
+				B0000000000000000000000E /* ServiceManagement.framework */,
+				B00000000000000000000016 /* Security.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (B0000000000000000000000F /* Breeze.app */, B00000000000000000000015 /* BreezeHelper */);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000008 /* BreezeIPC */ = {isa = PBXGroup; children = (B00000000000000000000011 /* BreezeHelperProtocol.swift */, ); path = BreezeIPC; sourceTree = "<group>"; };
+		D00000000000000000000009 /* BreezeHelper */ = {isa = PBXGroup; children = (B00000000000000000000017 /* AutomaticControlRestorer.swift */, B0000000000000000000001A /* ControlLeaseWatchdog.swift */, B00000000000000000000012 /* HelperService.swift */, B00000000000000000000019 /* ManualFanController.swift */, B00000000000000000000018 /* SMCRestoreConnection.swift */, B0000000000000000000001B /* SystemPowerObserver.swift */, B00000000000000000000013 /* main.swift */, ); path = BreezeHelper; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E00000000000000000000001 /* Breeze */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = H00000000000000000000002 /* Build configuration list for PBXNativeTarget "Breeze" */;
+			buildPhases = (
+				F00000000000000000000001 /* Sources */,
+				C00000000000000000000001 /* Frameworks */,
+				F00000000000000000000002 /* Resources */,
+				F00000000000000000000005 /* Embed Helper Tools */,
+				F00000000000000000000006 /* Copy LaunchDaemon Plist */,
+			);
+			buildRules = ();
+			dependencies = (J00000000000000000000002 /* PBXTargetDependency */, );
+			name = Breeze;
+			productName = Breeze;
+			productReference = B0000000000000000000000F /* Breeze.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000002 /* BreezeHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = H00000000000000000000003 /* Build configuration list for PBXNativeTarget "BreezeHelper" */;
+			buildPhases = (F00000000000000000000003 /* Sources */, C00000000000000000000002 /* Frameworks */, F00000000000000000000004 /* Resources */, );
+			buildRules = ();
+			dependencies = ();
+			name = BreezeHelper;
+			productName = BreezeHelper;
+			productReference = B00000000000000000000015 /* BreezeHelper */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		G00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = { E00000000000000000000001 = { CreatedOnToolsVersion = 27.0; }; E00000000000000000000002 = { CreatedOnToolsVersion = 27.0; }; };
+			};
+			buildConfigurationList = H00000000000000000000001 /* Build configuration list for PBXProject "Breeze" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = D00000000000000000000001;
+			productRefGroup = D00000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (E00000000000000000000001 /* Breeze */, E00000000000000000000002 /* BreezeHelper */);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F00000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F00000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000001 /* Models.swift in Sources */,
+				A00000000000000000000002 /* SMCDataFormat.swift in Sources */,
+				A00000000000000000000003 /* SMCConnection.swift in Sources */,
+				A00000000000000000000004 /* SensorCatalog.swift in Sources */,
+				A00000000000000000000005 /* HardwareMonitor.swift in Sources */,
+				A00000000000000000000006 /* BreezeApp.swift in Sources */,
+				A00000000000000000000007 /* AppState.swift in Sources */,
+				A00000000000000000000008 /* MenuBarView.swift in Sources */,
+				A00000000000000000000009 /* Preferences.swift in Sources */,
+				A0000000000000000000000A /* SettingsView.swift in Sources */,
+				A0000000000000000000000B /* LaunchAtLoginController.swift in Sources */,
+				A0000000000000000000000E /* HelperConnection.swift in Sources */,
+				A0000000000000000000000F /* BreezeHelperProtocol.swift in App Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000010 /* BreezeHelperProtocol.swift in Helper Sources */, A00000000000000000000017 /* AutomaticControlRestorer.swift in Sources */, A0000000000000000000001B /* ControlLeaseWatchdog.swift in Sources */, A00000000000000000000011 /* HelperService.swift in Sources */, A0000000000000000000001A /* ManualFanController.swift in Sources */, A00000000000000000000018 /* SMCRestoreConnection.swift in Sources */, A0000000000000000000001C /* SystemPowerObserver.swift in Sources */, A00000000000000000000012 /* main.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		J00000000000000000000002 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = E00000000000000000000002 /* BreezeHelper */; targetProxy = J00000000000000000000001 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		I00000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_VERSION = 6.0; }; name = Debug; };
+		I00000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; SWIFT_VERSION = 6.0; }; name = Release; };
+		I00000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 5;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/Breeze-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Debug;
+		};
+		I00000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 5;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/Breeze-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Release;
+		};
+		I00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 5; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.5.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Debug; };
+		I00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 5; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.5.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		H00000000000000000000001 /* Build configuration list for PBXProject "Breeze" */ = {isa = XCConfigurationList; buildConfigurations = (I00000000000000000000001 /* Debug */, I00000000000000000000002 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		H00000000000000000000002 /* Build configuration list for PBXNativeTarget "Breeze" */ = {isa = XCConfigurationList; buildConfigurations = (I00000000000000000000003 /* Debug */, I00000000000000000000004 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		H00000000000000000000003 /* Build configuration list for PBXNativeTarget "BreezeHelper" */ = {isa = XCConfigurationList; buildConfigurations = (I00000000000000000000005 /* Debug */, I00000000000000000000006 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = G00000000000000000000001 /* Project object */;
+}

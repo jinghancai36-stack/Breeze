@@ -1,0 +1,15 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+Config/Local.xcconfig
+*.cer
+*.p12
+*.mobileprovision
+build/
+dist/
+*.xcworkspace/xcuserdata/
