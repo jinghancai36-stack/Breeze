@@ -17,12 +17,12 @@ Milestone 9 prepares Breeze for an honest source-only GitHub release. It does no
 - [x] One-command Release gate covers Debug/Release tests, plist validation, static analysis, isolated Release build, version matching, arm64 architecture, and strict deep signing verification.
 - [x] Source archive script uses `git archive` from a clean commit and emits a SHA-256 checksum.
 - [x] Clean-worktree Release gate executed on the Phase 9 commit.
-- [ ] v0.8.0 source archive generated and its checksum verified.
+- [x] v0.8.0 source archive generated and its checksum verified.
 
 ## Publication boundary
 
 - [x] Existing commit author and committer emails are rewritten to the repository owner's GitHub noreply address before publication.
 - [x] Repository links target `jinghancai36-stack/Breeze`.
-- [ ] GitHub remote creation and first push are separately confirmed by the repository owner.
+- [x] GitHub remote creation and first `main` push were explicitly confirmed by the repository owner.
 - [ ] Hosted CI is selected only after confirming a runner with the required macOS/Xcode toolchain.
 - [ ] Public binary distribution remains deferred until Developer ID signing, notarization, and clean-Mac installation testing are available.

@@ -27,8 +27,8 @@ The first gate run exposed a test-only asynchronous race in the sleep-safety ass
 ## Remaining publication gates
 
 - The Release gate passed again from clean Phase 9 commit `7eae008` without `BREEZE_ALLOW_DIRTY`.
-- Generate the source archive from that clean commit and verify its SHA-256 checksum.
-- Confirm the GitHub repository has been created as an empty repository at `jinghancai36-stack/Breeze`.
+- A source archive was generated with `git archive`, and its SHA-256 checksum verification passed.
+- The empty public repository at `jinghancai36-stack/Breeze` was connected as `origin`; local `main` was pushed successfully and became the default branch.
 - Obtain explicit approval before configuring a remote, pushing commits, or creating a GitHub release.
 
 No installed Breeze executable or privileged Helper was modified during this validation.
