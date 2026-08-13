@@ -10,9 +10,11 @@ private final class StubMonitor: HardwareMonitoring, @unchecked Sendable {
   private var reads = 0
   private var failing = false
   private let controlVerified: Bool
+  private var temperature: Double?
 
-  init(controlVerified: Bool = false) {
+  init(controlVerified: Bool = false, temperature: Double? = 60) {
     self.controlVerified = controlVerified
+    self.temperature = temperature
   }
 
   var readCount: Int {
@@ -21,6 +23,10 @@ private final class StubMonitor: HardwareMonitoring, @unchecked Sendable {
 
   func setFailing(_ value: Bool) {
     lock.withLock { failing = value }
+  }
+
+  func setTemperature(_ value: Double?) {
+    lock.withLock { temperature = value }
   }
 
   func detectHardware() throws -> MacHardware {
@@ -41,7 +47,8 @@ private final class StubMonitor: HardwareMonitoring, @unchecked Sendable {
   }
 
   func readTemperatures() throws -> [ThermalSensor] {
-    [ThermalSensor(id: "cpu", name: "CPU", temperature: 60, category: .cpu)]
+    guard let temperature = lock.withLock({ temperature }) else { return [] }
+    return [ThermalSensor(id: "cpu", name: "CPU", temperature: temperature, category: .cpu)]
   }
 
   func snapshot() throws -> HardwareSnapshot {
@@ -102,15 +109,18 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
       .init(isAutomatic: true, fanModes: [3, 3], forceTest: 0, message: "Automatic")),
     leaseResult: Result<ControlLeaseStatus, Error> = .success(
       .init(isActive: true, remainingSeconds: 15, message: "Lease renewed")),
-    presetResult: Result<PresetControlStatus, Error> = .success(.init(
-      success: true, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 2_950],
-      didRestoreAutomatic: false, message: "Balanced")),
-    coolPresetResult: Result<PresetControlStatus, Error> = .success(.init(
-      success: true, targetRPMs: [3_950, 4_200], actualRPMs: [3_950, 4_200],
-      didRestoreAutomatic: false, message: "Cool")),
-    maxPresetResult: Result<PresetControlStatus, Error> = .success(.init(
-      success: true, targetRPMs: [5_779, 6_241], actualRPMs: [5_779, 6_241],
-      didRestoreAutomatic: false, message: "Max"))
+    presetResult: Result<PresetControlStatus, Error> = .success(
+      .init(
+        success: true, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 2_950],
+        didRestoreAutomatic: false, message: "Balanced")),
+    coolPresetResult: Result<PresetControlStatus, Error> = .success(
+      .init(
+        success: true, targetRPMs: [3_950, 4_200], actualRPMs: [3_950, 4_200],
+        didRestoreAutomatic: false, message: "Cool")),
+    maxPresetResult: Result<PresetControlStatus, Error> = .success(
+      .init(
+        success: true, targetRPMs: [5_779, 6_241], actualRPMs: [5_779, 6_241],
+        didRestoreAutomatic: false, message: "Max"))
   ) {
     self.result = result
     self.automaticResult = automaticResult
@@ -141,20 +151,24 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
     fanID: Int, rpm: Int,
     completion: @escaping @Sendable (Result<FanControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      success: true, fanID: fanID, requestedRPM: rpm, appliedRPM: rpm, actualRPM: rpm,
-      minimumRPM: 1_200, maximumRPM: 6_000, isManual: true,
-      didRestoreAutomatic: false, message: "Manual")))
+    completion(
+      .success(
+        .init(
+          success: true, fanID: fanID, requestedRPM: rpm, appliedRPM: rpm, actualRPM: rpm,
+          minimumRPM: 1_200, maximumRPM: 6_000, isManual: true,
+          didRestoreAutomatic: false, message: "Manual")))
   }
 
   func setFanAutomatic(
     fanID: Int,
     completion: @escaping @Sendable (Result<FanControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      success: true, fanID: fanID, requestedRPM: 0, appliedRPM: 0, actualRPM: 2_000,
-      minimumRPM: 1_200, maximumRPM: 6_000, isManual: false,
-      didRestoreAutomatic: false, message: "Automatic")))
+    completion(
+      .success(
+        .init(
+          success: true, fanID: fanID, requestedRPM: 0, appliedRPM: 0, actualRPM: 2_000,
+          minimumRPM: 1_200, maximumRPM: 6_000, isManual: false,
+          didRestoreAutomatic: false, message: "Automatic")))
   }
 
   func renewControlLease(
@@ -167,8 +181,10 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
   func controlLeaseStatus(
     completion: @escaping @Sendable (Result<ControlLeaseStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      isActive: false, remainingSeconds: 0, message: "No manual-control lease is active.")))
+    completion(
+      .success(
+        .init(
+          isActive: false, remainingSeconds: 0, message: "No manual-control lease is active.")))
   }
 
   func applyBalancedPreset(
@@ -250,6 +266,101 @@ struct AppStateTests {
     #expect(MenuBarDisplay.temperatureAndRPM.showsRPM)
   }
 
+  @Test("Automatic curve uses CPU or GPU peak and applies hysteresis")
+  func fanCurvePolicy() {
+    let snapshot = HardwareSnapshot(
+      hardware: MacHardware(
+        modelIdentifier: "MacBookPro18,3", chipName: "Apple M1 Pro",
+        architecture: "arm64", fanCount: 2, isControlVerified: true),
+      fans: [],
+      sensors: [
+        ThermalSensor(id: "cpu", name: "CPU", temperature: 66, category: .cpu),
+        ThermalSensor(id: "gpu", name: "GPU", temperature: 77, category: .gpu),
+      ])
+
+    #expect(FanCurvePolicy.controlTemperature(for: snapshot) == 77)
+    #expect(
+      FanCurvePolicy.controlTemperature(
+        for: HardwareSnapshot(hardware: snapshot.hardware, fans: [], sensors: [])) == nil)
+    #expect(FanCurvePolicy.stage(for: 59, previous: .automatic) == .automatic)
+    #expect(FanCurvePolicy.stage(for: 60, previous: .automatic) == .balanced)
+    #expect(FanCurvePolicy.stage(for: 74, previous: .balanced) == .balanced)
+    #expect(FanCurvePolicy.stage(for: 75, previous: .balanced) == .cool)
+    #expect(FanCurvePolicy.stage(for: 88, previous: .cool) == .max)
+    #expect(FanCurvePolicy.stage(for: 83, previous: .max) == .max)
+    #expect(FanCurvePolicy.stage(for: 81, previous: .max) == .cool)
+    #expect(FanCurvePolicy.stage(for: 67, previous: .cool) == .balanced)
+    #expect(FanCurvePolicy.stage(for: 51, previous: .balanced) == .automatic)
+  }
+
+  @Test("Automatic curve restores Apple control if its temperature source disappears")
+  func fanCurveMissingTemperature() async throws {
+    let installer = StubHelperInstaller()
+    installer.currentStatus = .enabled
+    let client = StubHelperClient(result: .success("0.8.0"))
+    let monitor = StubMonitor(controlVerified: true, temperature: 76)
+    let state = AppState(monitor: monitor, helperInstaller: installer, helperClient: client)
+
+    await state.refreshForTesting()
+    state.pingHelper()
+    for _ in 0..<50 where state.helperVersion == nil {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    state.enableFanCurve()
+    for _ in 0..<50 where state.fanCurveStage != .cool {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    monitor.setTemperature(nil)
+    await state.refreshForTesting()
+    for _ in 0..<50 where client.restoreCount < 2 || state.isRestoringAutomaticControl {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    #expect(!state.isFanCurveEnabled)
+    #expect(state.fanCurveStage == .automatic)
+    #expect(state.activeControlMode == .automatic)
+    #expect(client.restoreCount == 2)
+  }
+
+  @Test("Automatic curve applies a fixed safe stage and disabling restores Automatic")
+  func fanCurveLifecycle() async throws {
+    let installer = StubHelperInstaller()
+    installer.currentStatus = .enabled
+    let client = StubHelperClient(result: .success("0.8.0"))
+    let state = AppState(
+      monitor: StubMonitor(controlVerified: true, temperature: 76),
+      helperInstaller: installer,
+      helperClient: client)
+
+    await state.refreshForTesting()
+    state.pingHelper()
+    for _ in 0..<50 where state.helperVersion == nil {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    state.enableFanCurve()
+    for _ in 0..<50 where client.coolPresetCount == 0 || client.renewalCount == 0 {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    #expect(state.isFanCurveEnabled)
+    #expect(state.fanCurveStage == .cool)
+    #expect(state.activeControlMode == .curve)
+    #expect(client.coolPresetCount == 1)
+    #expect(client.restoreCount == 1)
+    #expect(state.controlLeaseStatus?.isActive == true)
+
+    state.disableFanCurve()
+    for _ in 0..<50 where client.restoreCount < 2 || state.isRestoringAutomaticControl {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(!state.isFanCurveEnabled)
+    #expect(state.fanCurveStage == .automatic)
+    #expect(state.activeControlMode == .automatic)
+    #expect(state.controlLeaseStatus == nil)
+    #expect(client.restoreCount == 2)
+  }
+
   @Test("Sleep pauses polling and wake performs an immediate refresh")
   func sleepAndWake() async throws {
     let monitor = StubMonitor()
@@ -314,9 +425,10 @@ struct AppStateTests {
     installer.currentStatus = .enabled
     let helper = StubHelperClient(
       result: .success("0.8.0"),
-      automaticResult: .success(.init(
-        isAutomatic: false, fanModes: [1, 0], forceTest: nil,
-        message: "Fan 0 remained manual.")))
+      automaticResult: .success(
+        .init(
+          isAutomatic: false, fanModes: [1, 0], forceTest: nil,
+          message: "Fan 0 remained manual.")))
     let state = AppState(
       monitor: StubMonitor(), helperInstaller: installer, helperClient: helper)
 
@@ -330,7 +442,6 @@ struct AppStateTests {
     #expect(state.helperStatus == .enabled)
     #expect(state.helperErrorMessage?.contains("cancelled") == true)
   }
-
 
   @Test("Automatic restore result is published")
   func automaticRestore() async throws {
@@ -448,9 +559,10 @@ struct AppStateTests {
     installer.currentStatus = .enabled
     let client = StubHelperClient(
       result: .success("0.8.0"),
-      presetResult: .success(.init(
-        success: false, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 0],
-        didRestoreAutomatic: false, message: "Second fan failed.")))
+      presetResult: .success(
+        .init(
+          success: false, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 0],
+          didRestoreAutomatic: false, message: "Second fan failed.")))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,

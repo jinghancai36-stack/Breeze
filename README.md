@@ -12,11 +12,13 @@ Breeze is a SwiftUI menu bar app that displays high-value temperatures and fan R
 - Native macOS menu bar UI with Light and Dark Mode support
 - CPU, GPU, memory, battery, and fan summaries where available
 - Automatic, Balanced, Cool, Max, and per-fan Manual controls
+- Opt-in automatic curve driven by the higher CPU/GPU temperature, with fixed stages and hysteresis
 - Targets derived from each fan's detected minimum and maximum RPM
 - Root Helper with a narrow, typed XPC boundary and strict peer validation
 - Fixed 15-second safety lease renewed by the GUI every 5 seconds
 - Automatic recovery after GUI crash, XPC loss, Helper restart, sleep, wake, or reboot
 - Launch at Login and four menu bar display modes
+- English and Simplified Chinese interface, following the macOS app language
 
 ## Supported Macs
 
@@ -65,7 +67,7 @@ After opening Breeze, use **Settings → Helper → Install Helper** and approve
 
 ## Interface
 
-The menu bar panel is intentionally compact: thermal and fan readings appear first, followed by fixed presets, independent Manual controls, Apple Automatic restoration, and visible safety status. Large charts and automatic fan curves are outside the v0.1 scope.
+The menu bar panel is intentionally compact: thermal and fan readings appear first, followed by the optional automatic curve, fixed presets, independent Manual controls, Apple Automatic restoration, and visible safety status. The curve uses the higher CPU/GPU temperature and switches only between already-verified fixed presets. Its thresholds and current stage are also visible in Settings.
 
 ## Diagnostic CLI
 
@@ -159,6 +161,16 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - Developer diagnostic: `--helper-cool`
 - Max uses each fan's independently detected and verified maximum RPM
 - Developer diagnostic: `--helper-max`
+
+### Milestone 10 — Automatic curve and localization
+
+- Opt-in automatic curve using the higher of the CPU and GPU temperature
+- Fixed entry stages: Balanced at 60 °C, Cool at 75 °C, and Max at 88 °C
+- Hysteresis releases Max below 82 °C, Cool below 68 °C, and Balanced at 52 °C
+- Enabling first establishes Apple Automatic as a known-safe baseline
+- The curve starts disabled after launch and wake, and disables itself after Helper or watchdog failure
+- English source interface and a Simplified Chinese String Catalog
+- The interface follows the language selected for Breeze in macOS
 
 ## Safety
 

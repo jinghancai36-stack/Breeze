@@ -35,6 +35,9 @@
 		A0000000000000000000001B /* ControlLeaseWatchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001A /* ControlLeaseWatchdog.swift */; };
 		A0000000000000000000001C /* SystemPowerObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001B /* SystemPowerObserver.swift */; };
 		A0000000000000000000001D /* PresetFanController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001C /* PresetFanController.swift */; };
+		A0000000000000000000001E /* FanCurvePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001D /* FanCurvePolicy.swift */; };
+		A0000000000000000000001F /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001E /* Localization.swift */; };
+		A00000000000000000000020 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001F /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,6 +100,9 @@
 		B0000000000000000000001A /* ControlLeaseWatchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlLeaseWatchdog.swift; sourceTree = "<group>"; };
 		B0000000000000000000001B /* SystemPowerObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPowerObserver.swift; sourceTree = "<group>"; };
 		B0000000000000000000001C /* PresetFanController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetFanController.swift; sourceTree = "<group>"; };
+		B0000000000000000000001D /* FanCurvePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurvePolicy.swift; sourceTree = "<group>"; };
+		B0000000000000000000001E /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		B0000000000000000000001F /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +151,8 @@
 				B0000000000000000000000A /* SettingsView.swift */,
 				B0000000000000000000000B /* LaunchAtLoginController.swift */,
 				B00000000000000000000010 /* HelperConnection.swift */,
+				B0000000000000000000001D /* FanCurvePolicy.swift */,
+				B0000000000000000000001E /* Localization.swift */,
 			);
 			path = BreezeApp;
 			sourceTree = "<group>";
@@ -163,7 +171,7 @@
 		};
 		D00000000000000000000005 /* Config */ = {
 			isa = PBXGroup;
-			children = (B0000000000000000000000C /* Breeze-Info.plist */, B00000000000000000000014 /* com.cai.Breeze.Helper.plist */);
+			children = (B0000000000000000000000C /* Breeze-Info.plist */, B00000000000000000000014 /* com.cai.Breeze.Helper.plist */, B0000000000000000000001F /* Localizable.xcstrings */);
 			path = Config;
 			sourceTree = "<group>";
 		};
@@ -231,7 +239,7 @@
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base);
+			knownRegions = (en, "zh-Hans", Base);
 			mainGroup = D00000000000000000000001;
 			productRefGroup = D00000000000000000000007 /* Products */;
 			projectDirPath = "";
@@ -244,7 +252,7 @@
 		F00000000000000000000002 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (A00000000000000000000020 /* Localizable.xcstrings in Resources */, );
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F00000000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
@@ -268,6 +276,8 @@
 				A0000000000000000000000B /* LaunchAtLoginController.swift in Sources */,
 				A0000000000000000000000E /* HelperConnection.swift in Sources */,
 				A0000000000000000000000F /* BreezeHelperProtocol.swift in App Sources */,
+				A0000000000000000000001E /* FanCurvePolicy.swift in Sources */,
+				A0000000000000000000001F /* Localization.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

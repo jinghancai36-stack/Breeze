@@ -12,6 +12,7 @@ import Observation
 
 enum ActiveFanControlMode: String, Equatable, Sendable {
   case automatic
+  case curve
   case manual
   case balanced
   case cool
@@ -39,6 +40,9 @@ final class AppState {
   private(set) var presetControlStatus: PresetControlStatus?
   private(set) var activeControlMode: ActiveFanControlMode = .automatic
   private(set) var isApplyingPreset = false
+  private(set) var isFanCurveEnabled = false
+  private(set) var fanCurveStage: FanCurveStage = .automatic
+  private(set) var fanCurveTemperature: Double?
 
   @ObservationIgnored private let logger = Logger(
     subsystem: "com.breeze.monitor", category: "Hardware")
@@ -132,7 +136,8 @@ final class AppState {
       try helperInstaller.register()
     } catch {
       logger.error("Helper registration failed: \(error.localizedDescription, privacy: .public)")
-      helperErrorMessage = "Breeze Helper needs approval in System Settings."
+      helperErrorMessage = L10n.text(
+        "error.helperApproval", fallback: "Breeze Helper needs approval in System Settings.")
     }
     refreshHelperStatus()
   }
@@ -156,11 +161,17 @@ final class AppState {
           self.unregisterHelperAfterAutomaticRestore()
         case .success(let status):
           self.automaticControlStatus = status
-          self.helperErrorMessage =
-            "Helper removal was cancelled because Apple automatic control was not verified: \(status.message)"
+          self.helperErrorMessage = L10n.format(
+            "error.helperRemovalNotAutomatic",
+            fallback:
+              "Helper removal was cancelled because Apple automatic control was not verified: %@",
+            status.message)
         case .failure(let error):
-          self.helperErrorMessage =
-            "Helper removal was cancelled because Apple automatic control could not be verified: \(error.localizedDescription)"
+          self.helperErrorMessage = L10n.format(
+            "error.helperRemovalVerification",
+            fallback:
+              "Helper removal was cancelled because Apple automatic control could not be verified: %@",
+            error.localizedDescription)
         }
       }
     }
@@ -171,7 +182,8 @@ final class AppState {
       try helperInstaller.unregister()
     } catch {
       logger.error("Helper removal failed: \(error.localizedDescription, privacy: .public)")
-      helperErrorMessage = "Unable to remove Breeze Helper."
+      helperErrorMessage = L10n.text(
+        "error.helperRemoval", fallback: "Unable to remove Breeze Helper.")
     }
     refreshHelperStatus()
   }
@@ -211,6 +223,7 @@ final class AppState {
         case .success(let status):
           self.automaticControlStatus = status
           if status.isAutomatic {
+            self.deactivateFanCurve()
             self.fanControlStatuses.removeAll()
             self.presetControlStatus = nil
             self.activeControlMode = .automatic
@@ -227,6 +240,7 @@ final class AppState {
 
   func setFanRPM(fanID: Int, rpm: Int) {
     guard canControlFan(fanID), !fansApplyingControl.contains(fanID) else { return }
+    deactivateFanCurve()
     fansApplyingControl.insert(fanID)
     helperErrorMessage = nil
     helperClient.setFanRPM(fanID: fanID, rpm: rpm) { [weak self] result in
@@ -252,7 +266,7 @@ final class AppState {
   }
 
   func setFanAutomatic(fanID: Int) {
-    if [.balanced, .cool, .max].contains(activeControlMode) {
+    if isFanCurveEnabled || [.balanced, .cool, .max].contains(activeControlMode) {
       restoreAutomaticControl()
       return
     }
@@ -280,18 +294,21 @@ final class AppState {
   }
 
   func applyBalancedPreset() {
+    deactivateFanCurve()
     applyPreset(mode: .balanced) { [helperClient] completion in
       helperClient.applyBalancedPreset(completion: completion)
     }
   }
 
   func applyCoolPreset() {
+    deactivateFanCurve()
     applyPreset(mode: .cool) { [helperClient] completion in
       helperClient.applyCoolPreset(completion: completion)
     }
   }
 
   func applyMaxPreset() {
+    deactivateFanCurve()
     applyPreset(mode: .max) { [helperClient] completion in
       helperClient.applyMaxPreset(completion: completion)
     }
@@ -299,6 +316,7 @@ final class AppState {
 
   private func applyPreset(
     mode: ActiveFanControlMode,
+    curveStage: FanCurveStage? = nil,
     request: (@escaping @Sendable (Result<PresetControlStatus, Error>) -> Void) -> Void
   ) {
     guard let snapshot,
@@ -322,16 +340,25 @@ final class AppState {
             self.fanControlStatuses.removeAll()
             self.automaticControlStatus = nil
             self.activeControlMode = mode
+            if let curveStage { self.fanCurveStage = curveStage }
             self.startLeaseHeartbeat()
           } else if status.didRestoreAutomatic {
+            if mode == .curve { self.deactivateFanCurve() }
             self.activeControlMode = .automatic
             self.stopLeaseHeartbeat()
           }
         case .failure(let error):
+          if mode == .curve {
+            self.deactivateFanCurve()
+            self.activeControlMode = .automatic
+            self.stopLeaseHeartbeat()
+          }
           self.presetControlStatus = nil
-          self.helperErrorMessage =
-            "\(mode.rawValue.capitalized) preset failed; the Helper safety lease will restore Automatic: "
-            + error.localizedDescription
+          self.helperErrorMessage = L10n.format(
+            "error.presetFailed",
+            fallback:
+              "Preset failed; the Helper safety lease will restore Automatic: %@",
+            error.localizedDescription)
         }
         await self.refresh()
       }
@@ -352,6 +379,14 @@ final class AppState {
   }
 
   func restoreAutomaticControl(completion: (@MainActor @Sendable () -> Void)? = nil) {
+    deactivateFanCurve()
+    restoreAutomaticControl(preservingCurve: false, completion: completion)
+  }
+
+  private func restoreAutomaticControl(
+    preservingCurve: Bool,
+    completion: (@MainActor @Sendable () -> Void)? = nil
+  ) {
     guard helperStatus == .enabled, !isRestoringAutomaticControl else { return }
     isRestoringAutomaticControl = true
     helperErrorMessage = nil
@@ -366,10 +401,15 @@ final class AppState {
             self.fanControlStatuses.removeAll()
             self.presetControlStatus = nil
             self.activeControlMode = .automatic
+            self.fanCurveStage = .automatic
+            if !preservingCurve { self.isFanCurveEnabled = false }
+          } else if preservingCurve {
+            self.deactivateFanCurve()
           }
           self.helperErrorMessage = status.isAutomatic ? nil : status.message
           if status.isAutomatic { self.stopLeaseHeartbeat() }
         case .failure(let error):
+          if preservingCurve { self.deactivateFanCurve() }
           self.automaticControlStatus = nil
           self.helperErrorMessage = error.localizedDescription
         }
@@ -379,6 +419,7 @@ final class AppState {
   }
 
   func quitBreeze() {
+    deactivateFanCurve()
     guard helperStatus == .enabled else {
       terminateApp()
       return
@@ -400,7 +441,11 @@ final class AppState {
           self.terminateApp()
         case .failure(let error):
           self.automaticControlStatus = nil
-          self.helperErrorMessage = "Quit was cancelled because Apple automatic control could not be verified: \(error.localizedDescription)"
+          self.helperErrorMessage = L10n.format(
+            "error.quitVerification",
+            fallback:
+              "Quit was cancelled because Apple automatic control could not be verified: %@",
+            error.localizedDescription)
         }
       }
     }
@@ -439,10 +484,13 @@ final class AppState {
         switch result {
         case .success(let lease):
           self.controlLeaseStatus = lease
-          if self.helperErrorMessage?.hasPrefix("Safety heartbeat failed") == true {
+          let heartbeatPrefix = L10n.text(
+            "error.heartbeatPrefix", fallback: "Safety heartbeat failed")
+          if self.helperErrorMessage?.hasPrefix(heartbeatPrefix) == true {
             self.helperErrorMessage = nil
           }
           if !lease.isActive {
+            self.deactivateFanCurve()
             self.helperErrorMessage = lease.message
             self.fanControlStatuses.removeAll()
             self.presetControlStatus = nil
@@ -453,9 +501,11 @@ final class AppState {
           }
         case .failure(let error):
           self.controlLeaseStatus = nil
-          self.helperErrorMessage =
-            "Safety heartbeat failed; the Helper will restore Automatic within 15 seconds: "
-            + error.localizedDescription
+          self.helperErrorMessage = L10n.format(
+            "error.heartbeat",
+            fallback:
+              "Safety heartbeat failed; the Helper will restore Automatic within 15 seconds: %@",
+            error.localizedDescription)
         }
 
         do {
@@ -483,6 +533,7 @@ final class AppState {
       lastSuccessfulUpdate = updated.capturedAt
       errorMessage = nil
       isLoading = false
+      evaluateFanCurve(using: updated)
       logger.debug(
         "Updated read-only snapshot: fans=\(updated.fans.count, privacy: .public) sensors=\(updated.sensors.count, privacy: .public)"
       )
@@ -508,6 +559,7 @@ final class AppState {
         [weak self] _ in
         Task { @MainActor in
           self?.isSleeping = true
+          self?.deactivateFanCurve()
           self?.logger.info("System will sleep; pausing read-only polling")
           self?.restoreAutomaticControl()
         }
@@ -525,6 +577,74 @@ final class AppState {
         }
       }
     )
+  }
+
+  func enableFanCurve() {
+    guard let snapshot,
+      snapshot.fans.count == 2,
+      snapshot.fans.allSatisfy({ canControlFan($0.id) }),
+      FanCurvePolicy.controlTemperature(for: snapshot) != nil,
+      !isRestoringAutomaticControl,
+      !isApplyingPreset,
+      fansApplyingControl.isEmpty
+    else { return }
+    isFanCurveEnabled = true
+    fanCurveStage = .automatic
+    presetControlStatus = nil
+    // Establish a known-safe baseline before the curve takes ownership. This
+    // prevents enabling the curve while a prior manual or preset mode is active.
+    restoreAutomaticControl(preservingCurve: true) { [weak self] in
+      guard let self, self.isFanCurveEnabled, let snapshot = self.snapshot else { return }
+      self.evaluateFanCurve(using: snapshot)
+    }
+  }
+
+  func disableFanCurve() {
+    guard isFanCurveEnabled else { return }
+    deactivateFanCurve()
+    restoreAutomaticControl(preservingCurve: false)
+  }
+
+  private func deactivateFanCurve() {
+    isFanCurveEnabled = false
+    fanCurveStage = .automatic
+    fanCurveTemperature = nil
+  }
+
+  private func evaluateFanCurve(using snapshot: HardwareSnapshot) {
+    guard isFanCurveEnabled,
+      !isSleeping,
+      !isApplyingPreset,
+      !isRestoringAutomaticControl,
+      fansApplyingControl.isEmpty
+    else { return }
+
+    guard let temperature = FanCurvePolicy.controlTemperature(for: snapshot) else {
+      deactivateFanCurve()
+      restoreAutomaticControl(preservingCurve: false)
+      return
+    }
+
+    fanCurveTemperature = temperature
+    let desiredStage = FanCurvePolicy.stage(for: temperature, previous: fanCurveStage)
+    guard desiredStage != fanCurveStage else { return }
+
+    switch desiredStage {
+    case .automatic:
+      restoreAutomaticControl(preservingCurve: true)
+    case .balanced:
+      applyPreset(mode: .curve, curveStage: .balanced) { [helperClient] completion in
+        helperClient.applyBalancedPreset(completion: completion)
+      }
+    case .cool:
+      applyPreset(mode: .curve, curveStage: .cool) { [helperClient] completion in
+        helperClient.applyCoolPreset(completion: completion)
+      }
+    case .max:
+      applyPreset(mode: .curve, curveStage: .max) { [helperClient] completion in
+        helperClient.applyMaxPreset(completion: completion)
+      }
+    }
   }
 }
 
@@ -547,7 +667,11 @@ private struct PreviewHelperClient: HelperCommunicating {
   func automaticControlStatus(
     completion: @escaping @Sendable (Result<AutomaticControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(isAutomatic: true, fanModes: [3, 3], forceTest: 0, message: "Apple automatic control is active.")))
+    completion(
+      .success(
+        .init(
+          isAutomatic: true, fanModes: [3, 3], forceTest: 0,
+          message: "Apple automatic control is active.")))
   }
 
   func restoreAutomaticControl(
@@ -560,70 +684,84 @@ private struct PreviewHelperClient: HelperCommunicating {
     fanID: Int, rpm: Int,
     completion: @escaping @Sendable (Result<FanControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      success: true, fanID: fanID, requestedRPM: rpm, appliedRPM: rpm, actualRPM: rpm,
-      minimumRPM: 1_200, maximumRPM: fanID == 0 ? 5_779 : 6_241,
-      isManual: true, didRestoreAutomatic: false, message: "Manual target verified.")))
+    completion(
+      .success(
+        .init(
+          success: true, fanID: fanID, requestedRPM: rpm, appliedRPM: rpm, actualRPM: rpm,
+          minimumRPM: 1_200, maximumRPM: fanID == 0 ? 5_779 : 6_241,
+          isManual: true, didRestoreAutomatic: false, message: "Manual target verified.")))
   }
 
   func setFanAutomatic(
     fanID: Int,
     completion: @escaping @Sendable (Result<FanControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      success: true, fanID: fanID, requestedRPM: 0, appliedRPM: 0, actualRPM: 2_400,
-      minimumRPM: 1_200, maximumRPM: fanID == 0 ? 5_779 : 6_241,
-      isManual: false, didRestoreAutomatic: false, message: "Apple automatic control.")))
+    completion(
+      .success(
+        .init(
+          success: true, fanID: fanID, requestedRPM: 0, appliedRPM: 0, actualRPM: 2_400,
+          minimumRPM: 1_200, maximumRPM: fanID == 0 ? 5_779 : 6_241,
+          isManual: false, didRestoreAutomatic: false, message: "Apple automatic control.")))
   }
 
   func applyBalancedPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      success: true,
-      targetRPMs: [2_800, 2_950],
-      actualRPMs: [2_800, 2_950],
-      didRestoreAutomatic: false,
-      message: "Balanced preset reached and verified on both fans."
-    )))
+    completion(
+      .success(
+        .init(
+          success: true,
+          targetRPMs: [2_800, 2_950],
+          actualRPMs: [2_800, 2_950],
+          didRestoreAutomatic: false,
+          message: "Balanced preset reached and verified on both fans."
+        )))
   }
 
   func applyCoolPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      success: true,
-      targetRPMs: [3_950, 4_200],
-      actualRPMs: [3_950, 4_200],
-      didRestoreAutomatic: false,
-      message: "Cool preset reached and verified on both fans."
-    )))
+    completion(
+      .success(
+        .init(
+          success: true,
+          targetRPMs: [3_950, 4_200],
+          actualRPMs: [3_950, 4_200],
+          didRestoreAutomatic: false,
+          message: "Cool preset reached and verified on both fans."
+        )))
   }
 
   func applyMaxPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      success: true,
-      targetRPMs: [5_779, 6_241],
-      actualRPMs: [5_779, 6_241],
-      didRestoreAutomatic: false,
-      message: "Max preset reached and verified on both fans."
-    )))
+    completion(
+      .success(
+        .init(
+          success: true,
+          targetRPMs: [5_779, 6_241],
+          actualRPMs: [5_779, 6_241],
+          didRestoreAutomatic: false,
+          message: "Max preset reached and verified on both fans."
+        )))
   }
 
   func renewControlLease(
     completion: @escaping @Sendable (Result<ControlLeaseStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      isActive: true, remainingSeconds: 15, message: "Manual-control lease renewed.")))
+    completion(
+      .success(
+        .init(
+          isActive: true, remainingSeconds: 15, message: "Manual-control lease renewed.")))
   }
 
   func controlLeaseStatus(
     completion: @escaping @Sendable (Result<ControlLeaseStatus, Error>) -> Void
   ) {
-    completion(.success(.init(
-      isActive: false, remainingSeconds: 0, message: "No manual-control lease is active.")))
+    completion(
+      .success(
+        .init(
+          isActive: false, remainingSeconds: 0, message: "No manual-control lease is active.")))
   }
 }
 

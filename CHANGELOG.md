@@ -4,9 +4,18 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in CPU/GPU automatic fan curve with fixed preset stages and hysteresis.
+- English and Simplified Chinese interface using an Xcode String Catalog.
+- Fan Curve settings with current stage, control temperature, thresholds, and safety behavior.
+
+### Safety
+
+- The curve first restores Apple Automatic, starts disabled after launch and wake, and cancels itself after Helper or watchdog failure.
+
 ### Planned
 
-- Public source repository and reproducible source archive.
 - Developer ID signing, notarization, and clean-Mac installation testing when the required Apple account is available.
 
 ## [0.8.0] — 2026-08-13

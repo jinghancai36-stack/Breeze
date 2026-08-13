@@ -37,7 +37,7 @@ struct MenuBarView: View {
           Image(systemName: "arrow.clockwise")
         }
         .buttonStyle(.plain)
-        .help("Refresh now")
+        .help(L10n.text("action.refreshNow", fallback: "Refresh now"))
       }
       Text(state.snapshot?.hardware.modelIdentifier ?? "Apple Silicon Mac")
         .font(.caption)
@@ -58,11 +58,12 @@ struct MenuBarView: View {
       VStack(alignment: .leading, spacing: 14) {
         if let error = state.errorMessage {
           StatusMessage(
-            message: "Showing the last good reading. \(error)",
+            message: L10n.format(
+              "error.lastReading", fallback: "Showing the last good reading. %@", error),
             systemImage: "exclamationmark.triangle.fill",
             color: .orange
           ) {
-            Button("Retry") { state.refreshNow() }
+            Button(L10n.text("action.retry", fallback: "Retry")) { state.refreshNow() }
               .controlSize(.small)
           }
         }
@@ -76,9 +77,10 @@ struct MenuBarView: View {
       }
     } else {
       ContentUnavailableView(
-        "Hardware unavailable",
+        L10n.text("hardware.unavailable", fallback: "Hardware unavailable"),
         systemImage: "exclamationmark.triangle",
-        description: Text(state.errorMessage ?? "Unable to read AppleSMC.")
+        description: Text(
+          state.errorMessage ?? L10n.text("error.smcRead", fallback: "Unable to read AppleSMC."))
       )
     }
   }
@@ -96,28 +98,40 @@ struct MenuBarView: View {
         }
       }
       if state.helperStatus != .enabled {
-        Text("Enable the privileged helper in Settings first.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Text(
+          L10n.text(
+            "helper.enableFirst", fallback: "Enable the privileged helper in Settings first.")
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
       } else if state.helperVersion != BreezeHelperConstants.helperVersion {
         Text(
-          "Active control requires matching Helper v\(BreezeHelperConstants.helperVersion). "
-            + "Update or approve the Helper in Settings.")
-          .font(.caption)
-          .foregroundStyle(.orange)
+          L10n.format(
+            "helper.versionMismatch",
+            fallback:
+              "Active control requires matching Helper v%@. Update or approve the Helper in Settings.",
+            BreezeHelperConstants.helperVersion)
+        )
+        .font(.caption)
+        .foregroundStyle(.orange)
       } else if !snapshot.hardware.isControlVerified {
-        Text("This Mac is in Monitor Only mode because manual control is not verified.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Text(
+          L10n.text(
+            "helper.monitorOnly",
+            fallback: "This Mac is in Monitor Only mode because manual control is not verified.")
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
       } else {
+        curveControl
         presetControls
         Divider()
         HStack {
-          Text("Manual Control")
+          Text(L10n.text("control.manual", fallback: "Manual Control"))
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
           Spacer()
-          Text("Per fan")
+          Text(L10n.text("control.perFan", fallback: "Per fan"))
             .font(.caption2)
             .foregroundStyle(.tertiary)
         }
@@ -127,7 +141,7 @@ struct MenuBarView: View {
         Button {
           state.restoreAutomaticControl()
         } label: {
-          Text("Restore All to Apple Automatic")
+          Text(L10n.text("action.restoreAll", fallback: "Restore All to Apple Automatic"))
             .frame(maxWidth: .infinity)
         }
         .disabled(state.isRestoringAutomaticControl || !state.fansApplyingControl.isEmpty)
@@ -149,7 +163,10 @@ struct MenuBarView: View {
       if let preset = state.presetControlStatus {
         if preset.success {
           Text(
-            "\(state.activeControlMode.rawValue.capitalized) targets: \(preset.targetRPMs.map { "\($0)" }.joined(separator: " / ")) RPM"
+            L10n.format(
+              "status.presetTargets", fallback: "%@ targets: %@ RPM",
+              state.isFanCurveEnabled ? fanCurveStageTitle : activeControlTitle,
+              preset.targetRPMs.map { "\($0)" }.joined(separator: " / "))
           )
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -163,10 +180,13 @@ struct MenuBarView: View {
       }
       if let lease = state.controlLeaseStatus, lease.isActive {
         Label(
-          "Safety watchdog active · \(lease.remainingSeconds)s lease",
-          systemImage: "heart.text.square.fill")
-          .font(.caption)
-          .foregroundStyle(.green)
+          L10n.format(
+            "watchdog.active", fallback: "Safety watchdog active · %ds lease",
+            lease.remainingSeconds),
+          systemImage: "heart.text.square.fill"
+        )
+        .font(.caption)
+        .foregroundStyle(.green)
       }
       if let error = state.helperErrorMessage {
         StatusMessage(
@@ -174,10 +194,53 @@ struct MenuBarView: View {
           systemImage: "exclamationmark.triangle.fill",
           color: .red
         ) {
-          Button("Check Safety") { state.checkAutomaticControl() }
-            .controlSize(.small)
-            .disabled(state.isRestoringAutomaticControl)
+          Button(L10n.text("action.checkSafety", fallback: "Check Safety")) {
+            state.checkAutomaticControl()
+          }
+          .controlSize(.small)
+          .disabled(state.isRestoringAutomaticControl)
         }
+      }
+    }
+  }
+
+  private var curveControl: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(L10n.text("curve.title", fallback: "Automatic Curve"))
+            .font(.caption.weight(.semibold))
+          Text(
+            L10n.text("curve.summary", fallback: "CPU/GPU peak · 60° Balanced · 75° Cool · 88° Max")
+          )
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+        }
+        Spacer()
+        Button(
+          state.isFanCurveEnabled
+            ? L10n.text("action.disable", fallback: "Disable")
+            : L10n.text("action.enable", fallback: "Enable")
+        ) {
+          if state.isFanCurveEnabled {
+            state.disableFanCurve()
+          } else {
+            state.enableFanCurve()
+          }
+        }
+        .controlSize(.small)
+        .disabled(
+          state.isApplyingPreset || state.isRestoringAutomaticControl
+            || !state.fansApplyingControl.isEmpty)
+      }
+      if state.isFanCurveEnabled, let temperature = state.fanCurveTemperature {
+        Text(
+          L10n.format(
+            "curve.active", fallback: "Curve active · %@ · %@ °C", fanCurveStageTitle,
+            temperature.formatted(.number.precision(.fractionLength(1))))
+        )
+        .font(.caption)
+        .foregroundStyle(.green)
       }
     }
   }
@@ -185,20 +248,24 @@ struct MenuBarView: View {
   private var presetControls: some View {
     VStack(alignment: .leading, spacing: 6) {
       HStack {
-        Text("Presets")
+        Text(L10n.text("control.presets", fallback: "Presets"))
           .font(.caption.weight(.semibold))
           .foregroundStyle(.secondary)
         Spacer()
         if state.isApplyingPreset { ProgressView().controlSize(.small) }
       }
       HStack(spacing: 8) {
-        presetButton("Balanced", systemImage: "scale.3d", mode: .balanced) {
+        presetButton(
+          L10n.text("mode.balanced", fallback: "Balanced"), systemImage: "scale.3d", mode: .balanced
+        ) {
           state.applyBalancedPreset()
         }
-        presetButton("Cool", systemImage: "snowflake", mode: .cool) {
+        presetButton(
+          L10n.text("mode.cool", fallback: "Cool"), systemImage: "snowflake", mode: .cool
+        ) {
           state.applyCoolPreset()
         }
-        presetButton("Max", systemImage: "fan.fill", mode: .max) {
+        presetButton(L10n.text("mode.max", fallback: "Max"), systemImage: "fan.fill", mode: .max) {
           state.applyMaxPreset()
         }
       }
@@ -244,13 +311,13 @@ struct MenuBarView: View {
         metricRow("GPU", temperature(sensor))
       }
       if let sensor = snapshot.hottestTemperature(in: .memory) {
-        metricRow("MEMORY", temperature(sensor))
+        metricRow(L10n.text("temperature.memory", fallback: "MEMORY"), temperature(sensor))
       }
       if let sensor = snapshot.batteryTemperature {
-        metricRow("BATTERY", temperature(sensor))
+        metricRow(L10n.text("temperature.battery", fallback: "BATTERY"), temperature(sensor))
       }
       if snapshot.sensors.isEmpty {
-        Text("No supported thermal sensors detected.")
+        Text(L10n.text("temperature.none", fallback: "No supported thermal sensors detected."))
           .foregroundStyle(.secondary)
       }
     }
@@ -259,11 +326,13 @@ struct MenuBarView: View {
   private func fans(_ fans: [FanState]) -> some View {
     VStack(alignment: .leading, spacing: 10) {
       if fans.isEmpty {
-        Text("No controllable fans detected.")
+        Text(L10n.text("fan.none", fallback: "No controllable fans detected."))
           .foregroundStyle(.secondary)
       } else {
         ForEach(fans) { fan in
-          metricRow("Fan \(fan.id + 1)", "\(Int(fan.currentRPM.rounded()).formatted()) RPM")
+          metricRow(
+            L10n.format("fan.number", fallback: "Fan %d", fan.id + 1),
+            "\(Int(fan.currentRPM.rounded()).formatted()) RPM")
         }
       }
     }
@@ -274,12 +343,16 @@ struct MenuBarView: View {
       HStack {
         Label(
           activeModeLabel,
-          systemImage: "lock.shield")
-          .foregroundStyle(.secondary)
+          systemImage: "lock.shield"
+        )
+        .foregroundStyle(.secondary)
         Spacer()
         if let updated = state.lastSuccessfulUpdate {
-          Text("Updated \(updated, style: .relative)")
-            .foregroundStyle(.tertiary)
+          HStack(spacing: 3) {
+            Text(L10n.text("status.updated", fallback: "Updated"))
+            Text(updated, style: .relative)
+          }
+          .foregroundStyle(.tertiary)
         }
       }
       .font(.caption)
@@ -288,11 +361,11 @@ struct MenuBarView: View {
         Button {
           showSettings()
         } label: {
-          Label("Settings", systemImage: "gear")
+          Label(L10n.text("action.settings", fallback: "Settings"), systemImage: "gear")
         }
         .buttonStyle(.plain)
         Spacer()
-        Button("Quit Breeze") {
+        Button(L10n.text("action.quit", fallback: "Quit Breeze")) {
           state.quitBreeze()
         }
         .buttonStyle(.plain)
@@ -314,22 +387,39 @@ struct MenuBarView: View {
   }
 
   private var activeModeLabel: String {
-    switch state.activeControlMode {
-    case .automatic: "Apple automatic"
-    case .manual: "Manual control active"
-    case .balanced: "Balanced active"
-    case .cool: "Cool active"
-    case .max: "Max active"
+    if state.isFanCurveEnabled {
+      return L10n.text("curve.activeShort", fallback: "Automatic curve active")
+    }
+    return switch state.activeControlMode {
+    case .automatic: L10n.text("mode.appleAutomatic", fallback: "Apple automatic")
+    case .curve: L10n.text("curve.activeShort", fallback: "Automatic curve active")
+    case .manual: L10n.text("mode.manualActive", fallback: "Manual control active")
+    case .balanced: L10n.text("mode.balancedActive", fallback: "Balanced active")
+    case .cool: L10n.text("mode.coolActive", fallback: "Cool active")
+    case .max: L10n.text("mode.maxActive", fallback: "Max active")
     }
   }
 
   private var activeControlTitle: String {
-    switch state.activeControlMode {
-    case .automatic: "Apple Automatic"
-    case .manual: "Manual Control"
-    case .balanced: "Balanced"
-    case .cool: "Cool"
-    case .max: "Max"
+    if state.isFanCurveEnabled {
+      return L10n.format("curve.titleStage", fallback: "Automatic Curve · %@", fanCurveStageTitle)
+    }
+    return switch state.activeControlMode {
+    case .automatic: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic")
+    case .curve: L10n.text("curve.title", fallback: "Automatic Curve")
+    case .manual: L10n.text("control.manual", fallback: "Manual Control")
+    case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
+    case .cool: L10n.text("mode.cool", fallback: "Cool")
+    case .max: L10n.text("mode.max", fallback: "Max")
+    }
+  }
+
+  private var fanCurveStageTitle: String {
+    switch state.fanCurveStage {
+    case .automatic: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic")
+    case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
+    case .cool: L10n.text("mode.cool", fallback: "Cool")
+    case .max: L10n.text("mode.max", fallback: "Max")
     }
   }
 
@@ -410,7 +500,7 @@ private struct FanControlRow: View {
     if let minimum = fan.minimumRPM, let maximum = fan.maximumRPM, minimum < maximum {
       VStack(alignment: .leading, spacing: 5) {
         HStack {
-          Text("Fan \(fan.id + 1)").fontWeight(.medium)
+          Text(L10n.format("fan.number", fallback: "Fan %d", fan.id + 1)).fontWeight(.medium)
           Spacer()
           if state.fansApplyingControl.contains(fan.id) {
             ProgressView().controlSize(.small)
@@ -423,12 +513,14 @@ private struct FanControlRow: View {
         }
         Slider(value: $targetRPM, in: minimum...maximum, step: 50)
           .disabled(!state.canControlFan(fan.id) || state.fansApplyingControl.contains(fan.id))
-          .accessibilityLabel("Fan \(fan.id + 1) target speed")
+          .accessibilityLabel(
+            L10n.format("fan.targetSpeed", fallback: "Fan %d target speed", fan.id + 1)
+          )
           .accessibilityValue("\(Int(targetRPM.rounded())) RPM")
         HStack {
           Text("\(Int(minimum.rounded()))")
           Spacer()
-          Text("Target \(Int(targetRPM.rounded())) RPM")
+          Text(L10n.format("fan.targetRPM", fallback: "Target %d RPM", Int(targetRPM.rounded())))
             .monospacedDigit()
             .contentTransition(.numericText())
             .animation(.easeInOut(duration: 0.2), value: targetRPM)
@@ -441,13 +533,13 @@ private struct FanControlRow: View {
           Button {
             state.setFanRPM(fanID: fan.id, rpm: Int(targetRPM.rounded()))
           } label: {
-            Text("Apply Manual")
+            Text(L10n.text("action.applyManual", fallback: "Apply Manual"))
               .frame(maxWidth: .infinity)
           }
           Button {
             state.setFanAutomatic(fanID: fan.id)
           } label: {
-            Text("Automatic")
+            Text(L10n.text("action.automatic", fallback: "Automatic"))
               .frame(maxWidth: .infinity)
           }
         }

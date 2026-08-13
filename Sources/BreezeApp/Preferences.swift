@@ -10,10 +10,10 @@ enum MenuBarDisplay: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
-    case .icon: "Fan Icon"
-    case .temperature: "Temperature"
-    case .rpm: "RPM"
-    case .temperatureAndRPM: "Temperature + RPM"
+    case .icon: L10n.text("display.fanIcon", fallback: "Fan Icon")
+    case .temperature: L10n.text("display.temperature", fallback: "Temperature")
+    case .rpm: L10n.text("display.rpm", fallback: "RPM")
+    case .temperatureAndRPM: L10n.text("display.temperatureAndRPM", fallback: "Temperature + RPM")
     }
   }
 
