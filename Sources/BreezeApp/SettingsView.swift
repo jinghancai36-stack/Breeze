@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 #if canImport(BreezeHardware)
@@ -311,9 +312,10 @@ struct SettingsView: View {
     Form {
       Section {
         HStack(spacing: 12) {
-          Image(systemName: "fan.fill")
-            .font(.system(size: 32))
-            .foregroundStyle(.tint)
+          Image(nsImage: NSApplication.shared.applicationIconImage)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 44, height: 44)
             .accessibilityHidden(true)
           VStack(alignment: .leading, spacing: 3) {
             Text("Breeze")

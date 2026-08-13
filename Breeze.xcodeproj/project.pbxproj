@@ -38,6 +38,7 @@
 		A0000000000000000000001E /* FanCurvePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001D /* FanCurvePolicy.swift */; };
 		A0000000000000000000001F /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001E /* Localization.swift */; };
 		A00000000000000000000020 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001F /* Localizable.xcstrings */; };
+		A00000000000000000000021 /* Breeze.icns in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* Breeze.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +104,8 @@
 		B0000000000000000000001D /* FanCurvePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FanCurvePolicy.swift; sourceTree = "<group>"; };
 		B0000000000000000000001E /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		B0000000000000000000001F /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		B00000000000000000000020 /* Breeze.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Breeze.icns; sourceTree = "<group>"; };
+		B00000000000000000000021 /* BreezeIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BreezeIcon.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +128,7 @@
 			children = (
 				D00000000000000000000002 /* Sources */,
 				D00000000000000000000005 /* Config */,
+				D0000000000000000000000A /* Assets */,
 				D00000000000000000000006 /* Frameworks */,
 				D00000000000000000000007 /* Products */,
 			);
@@ -171,8 +175,14 @@
 		};
 		D00000000000000000000005 /* Config */ = {
 			isa = PBXGroup;
-			children = (B0000000000000000000000C /* Breeze-Info.plist */, B00000000000000000000014 /* com.cai.Breeze.Helper.plist */, B0000000000000000000001F /* Localizable.xcstrings */);
+			children = (B0000000000000000000000C /* Breeze-Info.plist */, B00000000000000000000014 /* com.cai.Breeze.Helper.plist */, B0000000000000000000001F /* Localizable.xcstrings */, B00000000000000000000020 /* Breeze.icns */);
 			path = Config;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000A /* Assets */ = {
+			isa = PBXGroup;
+			children = (B00000000000000000000021 /* BreezeIcon.png */, );
+			path = Assets;
 			sourceTree = "<group>";
 		};
 		D00000000000000000000006 /* Frameworks */ = {
@@ -252,7 +262,7 @@
 		F00000000000000000000002 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (A00000000000000000000020 /* Localizable.xcstrings in Resources */, );
+			files = (A00000000000000000000020 /* Localizable.xcstrings in Resources */, A00000000000000000000021 /* Breeze.icns in Resources */, );
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F00000000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };

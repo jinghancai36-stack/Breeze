@@ -9,6 +9,7 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 - Opt-in CPU/GPU automatic fan curve with fixed preset stages and hysteresis.
 - English and Simplified Chinese interface using an Xcode String Catalog.
 - Fan Curve settings with current stage, control temperature, thresholds, and safety behavior.
+- A native macOS application icon with a cool-blue five-blade fan mark.
 
 ### Safety
 
