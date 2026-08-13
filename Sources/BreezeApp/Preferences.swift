@@ -16,6 +16,14 @@ enum MenuBarDisplay: String, CaseIterable, Identifiable {
     case .temperatureAndRPM: "Temperature + RPM"
     }
   }
+
+  var showsTemperature: Bool {
+    self == .temperature || self == .temperatureAndRPM
+  }
+
+  var showsRPM: Bool {
+    self == .rpm || self == .temperatureAndRPM
+  }
 }
 
 enum PreferenceKey {

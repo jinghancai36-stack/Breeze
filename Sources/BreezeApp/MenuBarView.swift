@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 #if canImport(BreezeHardware)
@@ -9,6 +10,7 @@ import SwiftUI
 
 struct MenuBarView: View {
   let state: AppState
+  @Environment(\.openSettings) private var openSettings
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -55,9 +57,14 @@ struct MenuBarView: View {
     } else if let snapshot = state.snapshot {
       VStack(alignment: .leading, spacing: 14) {
         if let error = state.errorMessage {
-          Label("Showing last reading — \(error)", systemImage: "exclamationmark.triangle")
-            .font(.caption)
-            .foregroundStyle(.orange)
+          StatusMessage(
+            message: "Showing the last good reading. \(error)",
+            systemImage: "exclamationmark.triangle.fill",
+            color: .orange
+          ) {
+            Button("Retry") { state.refreshNow() }
+              .controlSize(.small)
+          }
         }
         temperatures(snapshot)
         Divider()
@@ -80,9 +87,8 @@ struct MenuBarView: View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
         Label(
-          state.automaticControlStatus?.isAutomatic == true ? "Apple Automatic" : "Cooling Control",
-          systemImage: state.automaticControlStatus?.isAutomatic == true
-            ? "checkmark.shield" : "fan"
+          activeControlTitle,
+          systemImage: state.activeControlMode == .automatic ? "checkmark.shield" : "fan"
         )
         Spacer()
         if state.isRestoringAutomaticControl {
@@ -128,18 +134,32 @@ struct MenuBarView: View {
       }
 
       if let status = state.automaticControlStatus {
-        Text(status.message)
-          .font(.caption)
-          .foregroundStyle(status.isAutomatic ? Color.secondary : Color.orange)
+        if status.isAutomatic {
+          Label(status.message, systemImage: "checkmark.circle")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+          StatusMessage(
+            message: status.message,
+            systemImage: "exclamationmark.triangle.fill",
+            color: .orange)
+        }
       }
       if let preset = state.presetControlStatus {
-        Text(
-          preset.success
-            ? "\(state.activeControlMode.rawValue.capitalized) targets: \(preset.targetRPMs.map { "\($0)" }.joined(separator: " / ")) RPM"
-            : preset.message
-        )
-        .font(.caption)
-        .foregroundStyle(preset.success ? Color.secondary : Color.red)
+        if preset.success {
+          Text(
+            "\(state.activeControlMode.rawValue.capitalized) targets: \(preset.targetRPMs.map { "\($0)" }.joined(separator: " / ")) RPM"
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+        } else {
+          StatusMessage(
+            message: preset.message,
+            systemImage: "exclamationmark.triangle.fill",
+            color: .red)
+        }
       }
       if let lease = state.controlLeaseStatus, lease.isActive {
         Label(
@@ -149,9 +169,15 @@ struct MenuBarView: View {
           .foregroundStyle(.green)
       }
       if let error = state.helperErrorMessage {
-        Label(error, systemImage: "exclamationmark.triangle.fill")
-          .font(.caption)
-          .foregroundStyle(.red)
+        StatusMessage(
+          message: error,
+          systemImage: "exclamationmark.triangle.fill",
+          color: .red
+        ) {
+          Button("Check Safety") { state.checkAutomaticControl() }
+            .controlSize(.small)
+            .disabled(state.isRestoringAutomaticControl)
+        }
       }
     }
   }
@@ -259,7 +285,9 @@ struct MenuBarView: View {
       .font(.caption)
 
       HStack {
-        SettingsLink {
+        Button {
+          showSettings()
+        } label: {
           Label("Settings", systemImage: "gear")
         }
         .buttonStyle(.plain)
@@ -272,6 +300,19 @@ struct MenuBarView: View {
     }
   }
 
+  private func showSettings() {
+    openSettings()
+    NSApplication.shared.activate(ignoringOtherApps: true)
+
+    Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(100))
+      NSApplication.shared.activate(ignoringOtherApps: true)
+      let settingsWindow = NSApplication.shared.windows
+        .first { !($0 is NSPanel) && $0.canBecomeKey }
+      settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+  }
+
   private var activeModeLabel: String {
     switch state.activeControlMode {
     case .automatic: "Apple automatic"
@@ -279,6 +320,16 @@ struct MenuBarView: View {
     case .balanced: "Balanced active"
     case .cool: "Cool active"
     case .max: "Max active"
+    }
+  }
+
+  private var activeControlTitle: String {
+    switch state.activeControlMode {
+    case .automatic: "Apple Automatic"
+    case .manual: "Manual Control"
+    case .balanced: "Balanced"
+    case .cool: "Cool"
+    case .max: "Max"
     }
   }
 
@@ -294,7 +345,51 @@ struct MenuBarView: View {
       Text(value)
         .monospacedDigit()
         .fontWeight(.medium)
+        .contentTransition(.numericText())
+        .animation(.easeInOut(duration: 0.2), value: value)
     }
+  }
+}
+
+private struct StatusMessage<Actions: View>: View {
+  let message: String
+  let systemImage: String
+  let color: Color
+  @ViewBuilder let actions: () -> Actions
+
+  init(
+    message: String,
+    systemImage: String,
+    color: Color,
+    @ViewBuilder actions: @escaping () -> Actions
+  ) {
+    self.message = message
+    self.systemImage = systemImage
+    self.color = color
+    self.actions = actions
+  }
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 8) {
+      Image(systemName: systemImage)
+        .foregroundStyle(color)
+        .padding(.top, 1)
+      VStack(alignment: .leading, spacing: 6) {
+        Text(message)
+          .font(.caption)
+          .fixedSize(horizontal: false, vertical: true)
+        actions()
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(8)
+    .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: 7))
+  }
+}
+
+extension StatusMessage where Actions == EmptyView {
+  init(message: String, systemImage: String, color: Color) {
+    self.init(message: message, systemImage: systemImage, color: color) { EmptyView() }
   }
 }
 
@@ -322,14 +417,21 @@ private struct FanControlRow: View {
           } else {
             Text("\(Int(fan.currentRPM.rounded()).formatted()) RPM")
               .monospacedDigit()
+              .contentTransition(.numericText())
+              .animation(.easeInOut(duration: 0.2), value: fan.currentRPM)
           }
         }
         Slider(value: $targetRPM, in: minimum...maximum, step: 50)
           .disabled(!state.canControlFan(fan.id) || state.fansApplyingControl.contains(fan.id))
+          .accessibilityLabel("Fan \(fan.id + 1) target speed")
+          .accessibilityValue("\(Int(targetRPM.rounded())) RPM")
         HStack {
           Text("\(Int(minimum.rounded()))")
           Spacer()
-          Text("Target \(Int(targetRPM.rounded())) RPM").monospacedDigit()
+          Text("Target \(Int(targetRPM.rounded())) RPM")
+            .monospacedDigit()
+            .contentTransition(.numericText())
+            .animation(.easeInOut(duration: 0.2), value: targetRPM)
           Spacer()
           Text("\(Int(maximum.rounded()))")
         }

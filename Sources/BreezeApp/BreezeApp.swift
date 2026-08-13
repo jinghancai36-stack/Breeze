@@ -291,16 +291,23 @@ private struct MenuBarLabel: View {
   let snapshot: HardwareSnapshot?
 
   var body: some View {
-    switch display {
-    case .icon:
+    HStack(spacing: 4) {
       Image(systemName: "fan")
-        .accessibilityLabel("Breeze")
-    case .temperature:
-      Label(temperatureText, systemImage: "fan")
-    case .rpm:
-      Label(rpmText, systemImage: "fan")
-    case .temperatureAndRPM:
-      Label("\(temperatureText)  \(rpmText)", systemImage: "fan")
+      if let displayText {
+        Text(displayText)
+          .monospacedDigit()
+          .contentTransition(.numericText())
+      }
+    }
+    .accessibilityLabel(displayText.map { "Breeze, \($0)" } ?? "Breeze")
+  }
+
+  private var displayText: String? {
+    switch display {
+    case .icon: nil
+    case .temperature: temperatureText
+    case .rpm: rpmText
+    case .temperatureAndRPM: "\(temperatureText)  \(rpmText)"
     }
   }
 

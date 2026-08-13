@@ -1,14 +1,49 @@
 # Breeze
 
-A lightweight, native fan-controller foundation for Apple Silicon Macs.
+A lightweight, native fan controller for Apple Silicon Macs.
 
-Breeze discovers fans, reads current/reported min/max RPM, and presents high-value thermal summaries in a native SwiftUI menu bar app. Milestone 7 adds three dynamically calculated presets on top of the Helper-owned safety lease for the verified `MacBookPro18,3` M1 Pro model. Other hardware remains Monitor Only.
+Breeze is a SwiftUI menu bar app that displays high-value temperatures and fan RPM, provides independently bounded fan controls, and restores Apple Automatic control whenever an active control session ends or becomes unsafe.
+
+> [!WARNING]
+> Breeze uses undocumented AppleSMC interfaces. Fan control is enabled only on hardware that has been explicitly tested. All other Macs remain Monitor Only.
+
+## Features
+
+- Native macOS menu bar UI with Light and Dark Mode support
+- CPU, GPU, memory, battery, and fan summaries where available
+- Automatic, Balanced, Cool, Max, and per-fan Manual controls
+- Targets derived from each fan's detected minimum and maximum RPM
+- Root Helper with a narrow, typed XPC boundary and strict peer validation
+- Fixed 15-second safety lease renewed by the GUI every 5 seconds
+- Automatic recovery after GUI crash, XPC loss, Helper restart, sleep, wake, or reboot
+- Launch at Login and four menu bar display modes
+
+## Supported Macs
+
+Full fan control is currently verified only on:
+
+| Model identifier | Chip | Fans | Monitoring | Control | Tested |
+| --- | --- | ---: | --- | --- | --- |
+| `MacBookPro18,3` | Apple M1 Pro | 2 | Yes | Yes | Yes |
+
+Other Apple Silicon Macs can use monitoring when their sensors are readable, but Breeze does not enable writes on unverified models. See [SUPPORTED_MACS.md](SUPPORTED_MACS.md).
 
 ## Requirements
 
 - macOS 14 or newer
 - Apple Silicon Mac
 - Swift 6.2 / Xcode 26 or newer for development
+
+## Installation status
+
+Breeze does not yet publish a general-purpose binary download. The current build uses an Apple Development identity for local testing. A normal download for other users requires Developer ID signing and Apple notarization.
+
+- **Local development:** fully supported on the verified development Mac.
+- **Build from source:** supported for contributors with Xcode and a usable local signing identity.
+- **Public binary:** planned after Developer ID signing and notarization are available.
+- **Ad-hoc build:** monitoring can work, but the privileged Helper is intentionally unavailable.
+
+Do not disable Gatekeeper globally or install an unsigned root Helper.
 
 ## Open and run in Xcode
 
@@ -24,7 +59,13 @@ Breeze discovers fans, reads current/reported min/max RPM, and presents high-val
 open dist/Breeze.app
 ```
 
-The build script uses an available Apple Development certificate for local Helper testing and enables Hardened Runtime. Local Helper registration is verified with that identity on the development Mac. A side-loaded download for other users requires an appropriate Developer ID signing/notarization or a separate user-driven installation workflow; an ad-hoc build remains read-only because macOS will not launch its root Helper through this design.
+The script enables Hardened Runtime and uses an available Apple Development certificate for local Helper testing. If no suitable identity exists, it creates an ad-hoc build and clearly warns that privileged control is unavailable.
+
+After opening Breeze, use **Settings → Helper → Install Helper** and approve the background item in System Settings when macOS requests it.
+
+## Interface
+
+The menu bar panel is intentionally compact: thermal and fan readings appear first, followed by fixed presets, independent Manual controls, Apple Automatic restoration, and visible safety status. Large charts and automatic fan curves are outside the v0.1 scope.
 
 ## Diagnostic CLI
 
@@ -45,7 +86,15 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test
 Using the full Xcode toolchain is required because the Command Line Tools-only
 selection does not contain the macOS XCTest framework.
 
-## Milestone 2 features
+Run the optimized suite before a release candidate:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c release
+```
+
+## Implementation milestones
+
+### Milestone 2 — Read-only menu bar app
 
 - Standard Xcode macOS app project and `.app` bundle
 - Persistent monitoring while the popover is closed
@@ -57,7 +106,7 @@ selection does not contain the macOS XCTest framework.
 - Sleep/wake polling lifecycle
 - Last-good-reading retention and visible stale-state errors
 
-## Milestone 3 helper
+### Milestone 3 — Privileged Helper
 
 - Embedded `BreezeHelper` launch daemon managed by `SMAppService`
 - Strict XPC surface containing only `ping` and `getHelperVersion`
@@ -66,7 +115,7 @@ selection does not contain the macOS XCTest framework.
 - Helper installation, approval, removal, and connection test in Settings
 - Developer diagnostics: `--helper-status`, `--helper-register`, `--helper-ping`, and `--helper-unregister`
 
-## Milestone 4 automatic restore
+### Milestone 4 — Automatic restore
 
 - Supports only the verified `MacBookPro18,3` two-fan configuration
 - Reads `F0Md` and `F1Md`, then restores both to automatic mode (`0`)
@@ -76,7 +125,7 @@ selection does not contain the macOS XCTest framework.
 - Exposes no arbitrary key, raw-byte, mode-value, or target-RPM input over XPC
 - Developer diagnostics: `--helper-auto-status` and `--helper-restore-auto`
 
-## Milestone 5 manual control
+### Milestone 5 — Manual control
 
 - Independent manual sliders for Fan 1 and Fan 2
 - Explicit Apply Manual action; moving a slider alone does not write hardware
@@ -87,7 +136,7 @@ selection does not contain the macOS XCTest framework.
 - Unsupported models, missing/untrusted bounds, unknown modes, and invalid fan IDs remain Monitor Only
 - Developer diagnostics: `--helper-set-rpm <fan> <rpm>` and `--helper-set-auto <fan>`; Manual diagnostics require an exact app/Helper version match
 
-## Milestone 6 safety watchdog
+### Milestone 6 — Safety watchdog
 
 - Root Helper owns a fixed 15-second manual-control lease; the app renews it every 5 seconds
 - Missing heartbeat, GUI crash, Force Quit, or XPC loss restores both fans to Apple Automatic
@@ -98,7 +147,7 @@ selection does not contain the macOS XCTest framework.
 - Both the GUI and root Helper request Automatic before sleep; wake reasserts Automatic and never resumes Manual
 - Developer diagnostics: `--helper-heartbeat` and `--helper-watchdog-status`
 
-## Milestone 7 presets
+### Milestone 7 — Presets
 
 - Balanced is calculated separately for each fan at 35% of its detected min-to-max range
 - Targets are rounded to 50 RPM and revalidated by the root Helper before any write
@@ -115,7 +164,11 @@ selection does not contain the macOS XCTest framework.
 
 Breeze uses undocumented/private hardware interfaces. Availability varies between Mac models and macOS versions. The helper runs as root only after explicit macOS approval. Manual control is restricted to a per-model and per-fan whitelist and never bypasses detected RPM bounds. A Helper-owned lease restores Automatic when the controlling GUI disappears; explicit Automatic and Quit remain the preferred release paths.
 
-See [SAFETY.md](SAFETY.md), [docs/SMC_NOTES.md](docs/SMC_NOTES.md), [docs/MILESTONE_6.md](docs/MILESTONE_6.md), [docs/VALIDATION_M6.md](docs/VALIDATION_M6.md), and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+See [SAFETY.md](SAFETY.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SMC_NOTES.md](docs/SMC_NOTES.md), and the milestone validation records under [docs](docs).
+
+## Contributing
+
+Compatibility reports, documentation, UI improvements, and tests are welcome. Changes to SMC writes, Helper security, fan bounds, or recovery behavior require additional safety evidence. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## License
 

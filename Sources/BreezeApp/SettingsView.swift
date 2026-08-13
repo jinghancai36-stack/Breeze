@@ -18,8 +18,10 @@ struct SettingsView: View {
         .tabItem { Label("Hardware", systemImage: "cpu") }
       helper
         .tabItem { Label("Helper", systemImage: "lock.shield") }
+      about
+        .tabItem { Label("About", systemImage: "info.circle") }
     }
-    .frame(width: 480, height: 330)
+    .frame(width: 500, height: 380)
     .onAppear {
       loginItem.refresh()
       state.refreshHelperStatus()
@@ -45,6 +47,7 @@ struct SettingsView: View {
           Text(error)
             .font(.caption)
             .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
         }
       }
 
@@ -59,6 +62,13 @@ struct SettingsView: View {
       Section("Monitoring") {
         LabeledContent("Popover refresh", value: "1 second")
         LabeledContent("Background refresh", value: "5 seconds")
+      }
+
+      Section("Safety") {
+        Text("Breeze always starts in Apple Automatic mode and never resumes an active fan mode after relaunch or wake.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
       }
     }
     .formStyle(.grouped)
@@ -75,7 +85,7 @@ struct SettingsView: View {
           LabeledContent("Fan count", value: snapshot.hardware.fanCount.formatted())
           LabeledContent(
             "Control status",
-            value: snapshot.hardware.isControlVerified ? "Manual verified" : "Monitor only")
+            value: snapshot.hardware.isControlVerified ? "Verified" : "Monitor only")
         }
 
         Section("Fans") {
@@ -114,6 +124,7 @@ struct SettingsView: View {
           Text(error)
             .font(.caption)
             .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
         }
       }
 
@@ -163,6 +174,51 @@ struct SettingsView: View {
     .padding()
   }
 
+  private var about: some View {
+    Form {
+      Section {
+        HStack(spacing: 12) {
+          Image(systemName: "fan.fill")
+            .font(.system(size: 32))
+            .foregroundStyle(.tint)
+            .accessibilityHidden(true)
+          VStack(alignment: .leading, spacing: 3) {
+            Text("Breeze")
+              .font(.title2.weight(.semibold))
+            Text("A lightweight, native fan controller for Apple Silicon Macs.")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .padding(.vertical, 4)
+      }
+
+      Section("Build") {
+        LabeledContent("Version", value: appVersion)
+        LabeledContent("Build", value: buildNumber)
+        LabeledContent("Minimum macOS", value: "14.0")
+        LabeledContent("License", value: "MIT")
+      }
+
+      Section("Support") {
+        LabeledContent("Verified control model", value: "MacBookPro18,3")
+        Text("Other Apple Silicon Macs remain Monitor Only until their fan-control behavior is independently verified.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+
+      Section("Hardware Notice") {
+        Text("Breeze uses undocumented AppleSMC interfaces. Fan control availability can vary by model and macOS version.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .formStyle(.grouped)
+    .padding()
+  }
+
   private var helperStatusText: String {
     switch state.helperStatus {
     case .notRegistered: "Not installed"
@@ -177,6 +233,14 @@ struct SettingsView: View {
       return "Unknown"
     }
     return "\(Int(minimum.rounded()).formatted())–\(Int(maximum.rounded()).formatted()) RPM"
+  }
+
+  private var appVersion: String {
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
+  }
+
+  private var buildNumber: String {
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Local"
   }
 }
 

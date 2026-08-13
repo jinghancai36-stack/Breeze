@@ -78,7 +78,7 @@ final class AppState {
     helperClient = PreviewHelperClient()
     terminateApp = {}
     helperStatus = .enabled
-    helperVersion = "0.7.2"
+    helperVersion = "0.8.0"
     monitor = nil
     snapshot = previewSnapshot
     lastSuccessfulUpdate = previewSnapshot.capturedAt
@@ -541,7 +541,7 @@ private struct PreviewHelperInstaller: HelperInstalling {
 
 private struct PreviewHelperClient: HelperCommunicating {
   func probe(completion: @escaping @Sendable (Result<String, Error>) -> Void) {
-    completion(.success("0.7.2"))
+    completion(.success("0.8.0"))
   }
 
   func automaticControlStatus(
