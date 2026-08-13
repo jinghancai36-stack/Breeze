@@ -3,11 +3,13 @@ import Foundation
 enum FanPreset: String, Equatable, Sendable {
   case balanced
   case cool
+  case max
 
   var rangeFraction: Float {
     switch self {
     case .balanced: 0.35
     case .cool: 0.60
+    case .max: 1.00
     }
   }
 
@@ -15,6 +17,7 @@ enum FanPreset: String, Equatable, Sendable {
     switch self {
     case .balanced: "Balanced"
     case .cool: "Cool"
+    case .max: "Max"
     }
   }
 }

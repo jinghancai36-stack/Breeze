@@ -125,9 +125,19 @@ struct MenuBarView: View {
           .disabled(
             state.isApplyingPreset || state.isRestoringAutomaticControl
               || !state.fansApplyingControl.isEmpty)
+          Button {
+            state.applyMaxPreset()
+          } label: {
+            Label(
+              state.activeControlMode == .max ? "Max Active" : "Max",
+              systemImage: "fan.fill")
+          }
+          .disabled(
+            state.isApplyingPreset || state.isRestoringAutomaticControl
+              || !state.fansApplyingControl.isEmpty)
           if state.isApplyingPreset { ProgressView().controlSize(.small) }
           Spacer()
-          Text("35% / 60%")
+          Text("35% / 60% / 100%")
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
@@ -238,6 +248,7 @@ struct MenuBarView: View {
     case .manual: "Manual control active"
     case .balanced: "Balanced active"
     case .cool: "Cool active"
+    case .max: "Max active"
     }
   }
 

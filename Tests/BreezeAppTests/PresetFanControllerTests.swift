@@ -14,6 +14,25 @@ struct PresetFanControllerTests {
       for: .cool, minimum: 1_200, maximum: 5_779) == 3_950)
     #expect(try FanPresetPolicy.targetRPM(
       for: .cool, minimum: 1_200, maximum: 6_241) == 4_200)
+    #expect(try FanPresetPolicy.targetRPM(
+      for: .max, minimum: 1_200, maximum: 5_779) == 5_779)
+    #expect(try FanPresetPolicy.targetRPM(
+      for: .max, minimum: 1_200, maximum: 6_241) == 6_241)
+  }
+
+  @Test("Max uses each fan's verified maximum without exceeding its bounds")
+  func appliesMax() {
+    let hardware = makeHardware()
+
+    let report = makeController(hardware).apply(.max)
+
+    #expect(report.success)
+    #expect(report.targetRPMs == [5_779, 6_241])
+    #expect(report.actualRPMs == [5_779, 6_241])
+    #expect(hardware.targets[.fan0] == 5_779)
+    #expect(hardware.targets[.fan1] == 6_241)
+    #expect(hardware.values[.fan0Mode] == 1)
+    #expect(hardware.values[.fan1Mode] == 1)
   }
 
   @Test("Cool applies and verifies the higher dynamic target on both fans")

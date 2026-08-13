@@ -1,6 +1,6 @@
 # Milestone 7 — Presets
 
-Phase 7 adds `Balanced`, `Cool`, and `Max` in that order. Balanced and Cool are validated; Max remains the final gated slice.
+Phase 7 adds `Balanced`, `Cool`, and `Max` in that order. All three presets are implemented and validated on the verified hardware.
 
 ## Balanced policy
 
@@ -12,12 +12,14 @@ target = rounded to the nearest 50 RPM
 ```
 
 Cool uses the identical calculation and transaction with a `0.60` range fraction.
+Max uses a `1.00` range fraction, which resolves to each fan's independently detected maximum after bounds validation.
 
 No absolute RPM is hard-coded. The root Helper reads and validates both fan ranges before the first write.
 
 ## Safety invariants
 
 - [x] Fixed, argument-free `applyBalancedPreset` XPC operation.
+- [x] Fixed, argument-free `applyCoolPreset` and `applyMaxPreset` XPC operations.
 - [x] Verified `MacBookPro18,3`, two fans, M1 direct-mode firmware only.
 - [x] Per-fan bounds must stay within the existing 1000–7000 RPM trust envelope.
 - [x] Both fans are preflighted before any write.
@@ -34,3 +36,7 @@ Balanced passed on the verified Mac. Dynamic targets `[2800,2950]`, converged GU
 ## Cool validation
 
 Cool passed on the verified Mac. Dynamic targets `[3950,4200]`, converged GUI readings around `[3967,4221]`, repeated heartbeat renewal, watchdog timeout fallback, and explicit restoration to Apple Automatic are recorded in `VALIDATION_M7.md`.
+
+## Max validation
+
+Automated policy, transaction, XPC, App-state, and heartbeat tests pass with expected targets `[5779,6241]`. Real-hardware diagnostic and GUI activation reached both verified maxima, the no-heartbeat diagnostic restored Automatic after 15 seconds, repeated GUI heartbeats renewed the lease, and explicit Apple Automatic restoration verified `[0,0]`.

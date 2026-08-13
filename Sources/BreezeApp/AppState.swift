@@ -15,6 +15,7 @@ enum ActiveFanControlMode: String, Equatable, Sendable {
   case manual
   case balanced
   case cool
+  case max
 }
 
 @MainActor
@@ -77,7 +78,7 @@ final class AppState {
     helperClient = PreviewHelperClient()
     terminateApp = {}
     helperStatus = .enabled
-    helperVersion = "0.7.1"
+    helperVersion = "0.7.2"
     monitor = nil
     snapshot = previewSnapshot
     lastSuccessfulUpdate = previewSnapshot.capturedAt
@@ -251,7 +252,7 @@ final class AppState {
   }
 
   func setFanAutomatic(fanID: Int) {
-    if activeControlMode == .balanced || activeControlMode == .cool {
+    if [.balanced, .cool, .max].contains(activeControlMode) {
       restoreAutomaticControl()
       return
     }
@@ -287,6 +288,12 @@ final class AppState {
   func applyCoolPreset() {
     applyPreset(mode: .cool) { [helperClient] completion in
       helperClient.applyCoolPreset(completion: completion)
+    }
+  }
+
+  func applyMaxPreset() {
+    applyPreset(mode: .max) { [helperClient] completion in
+      helperClient.applyMaxPreset(completion: completion)
     }
   }
 
@@ -534,7 +541,7 @@ private struct PreviewHelperInstaller: HelperInstalling {
 
 private struct PreviewHelperClient: HelperCommunicating {
   func probe(completion: @escaping @Sendable (Result<String, Error>) -> Void) {
-    completion(.success("0.7.1"))
+    completion(.success("0.7.2"))
   }
 
   func automaticControlStatus(
@@ -590,6 +597,18 @@ private struct PreviewHelperClient: HelperCommunicating {
       actualRPMs: [3_950, 4_200],
       didRestoreAutomatic: false,
       message: "Cool preset reached and verified on both fans."
+    )))
+  }
+
+  func applyMaxPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    completion(.success(.init(
+      success: true,
+      targetRPMs: [5_779, 6_241],
+      actualRPMs: [5_779, 6_241],
+      didRestoreAutomatic: false,
+      message: "Max preset reached and verified on both fans."
     )))
   }
 

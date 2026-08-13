@@ -22,7 +22,7 @@ SwiftUI `MenuBarExtra` using a root-owned observable `AppState`. Hardware pollin
 
 ## BreezeIPC
 
-Owns the Objective-C-compatible XPC protocol and identifiers shared by the app and helper. Phase 7 exposes fixed argument-free `applyBalancedPreset` and `applyCoolPreset` operations in addition to the Milestone 6 boundary. Preset and lease calls accept no arguments. Manual calls accept only an integer fan ID and, for setting RPM, an integer request. There is no generic payload, caller-controlled fraction/timeout, arbitrary command, path, SMC key, raw mode value, or byte buffer.
+Owns the Objective-C-compatible XPC protocol and identifiers shared by the app and helper. Phase 7 exposes fixed argument-free `applyBalancedPreset`, `applyCoolPreset`, and `applyMaxPreset` operations in addition to the Milestone 6 boundary. Preset and lease calls accept no arguments. Manual calls accept only an integer fan ID and, for setting RPM, an integer request. There is no generic payload, caller-controlled fraction/timeout, arbitrary command, path, SMC key, raw mode value, or byte buffer.
 
 ## BreezeHelper
 

@@ -234,6 +234,42 @@ struct HelperXPCTests {
     #expect((try await leaseStatus(client)).isActive)
   }
 
+  @Test("Max controls both fans at their verified maxima and arms a lease over XPC")
+  func maxPresetTransport() async throws {
+    let hardware = TestAutomaticHardware()
+    hardware.values.removeValue(forKey: .forceTest)
+    let gate = ControlOperationGate()
+    let watchdog = ControlLeaseWatchdog(
+      operationGate: gate,
+      restore: { AutomaticControlRestorer(hardware: hardware, pause: {}).restore() },
+      startsTimer: false)
+    let service = HelperService(
+      restorerFactory: { AutomaticControlRestorer(hardware: hardware, pause: {}) },
+      presetControllerFactory: {
+        PresetFanController(hardware: hardware, makeManualController: {
+          ManualFanController(
+            hardware: hardware,
+            settleAfterManualMode: {}, pauseBeforeTargetRetry: {}, pause: {})
+        })
+      },
+      operationGate: gate,
+      watchdog: watchdog)
+    let listener = NSXPCListener.anonymous()
+    let delegate = HelperListenerDelegate(
+      service: service, clientSigningRequirement: nil, expectedClientExecutableURL: nil)
+    listener.delegate = delegate
+    listener.resume()
+    defer { listener.invalidate() }
+
+    let client = HelperClient(
+      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+    let max = try await applyMax(client)
+
+    #expect(max.success)
+    #expect(max.targetRPMs == [5_779, 6_241])
+    #expect((try await leaseStatus(client)).isActive)
+  }
+
   @Test("XPC disconnect followed by heartbeat timeout restores Automatic")
   func disconnectedClientTimesOut() async throws {
     let hardware = TestAutomaticHardware()
@@ -339,6 +375,12 @@ struct HelperXPCTests {
   private func applyCool(_ client: HelperClient) async throws -> PresetControlStatus {
     try await withCheckedThrowingContinuation { continuation in
       client.applyCoolPreset { result in continuation.resume(with: result) }
+    }
+  }
+
+  private func applyMax(_ client: HelperClient) async throws -> PresetControlStatus {
+    try await withCheckedThrowingContinuation { continuation in
+      client.applyMaxPreset { result in continuation.resume(with: result) }
     }
   }
 

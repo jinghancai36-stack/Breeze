@@ -145,6 +145,12 @@ final class HelperService: NSObject, BreezeHelperProtocol {
     applyPreset(.cool, reply: reply)
   }
 
+  func applyMaxPreset(
+    withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
+  ) {
+    applyPreset(.max, reply: reply)
+  }
+
   private func applyPreset(
     _ preset: FanPreset,
     reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void

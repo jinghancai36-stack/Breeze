@@ -2,7 +2,7 @@
 
 A lightweight, native fan-controller foundation for Apple Silicon Macs.
 
-Breeze discovers fans, reads current/reported min/max RPM, and presents high-value thermal summaries in a native SwiftUI menu bar app. Milestone 7 adds the first dynamically calculated preset on top of the Helper-owned safety lease for the verified `MacBookPro18,3` M1 Pro model. Other hardware remains Monitor Only.
+Breeze discovers fans, reads current/reported min/max RPM, and presents high-value thermal summaries in a native SwiftUI menu bar app. Milestone 7 adds three dynamically calculated presets on top of the Helper-owned safety lease for the verified `MacBookPro18,3` M1 Pro model. Other hardware remains Monitor Only.
 
 ## Requirements
 
@@ -108,6 +108,8 @@ selection does not contain the macOS XCTest framework.
 - Developer diagnostic: `--helper-balanced`
 - Cool uses 60% of each independently detected fan range with the same transaction and watchdog guarantees
 - Developer diagnostic: `--helper-cool`
+- Max uses each fan's independently detected and verified maximum RPM
+- Developer diagnostic: `--helper-max`
 
 ## Safety
 

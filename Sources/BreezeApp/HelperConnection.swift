@@ -143,6 +143,14 @@ protocol PresetServicing: Sendable {
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
   func applyCoolPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
+  func applyMaxPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
+}
+
+private enum PresetRequest {
+  case balanced
+  case cool
+  case max
 }
 
 protocol HelperCommunicating:
@@ -206,17 +214,23 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
   func applyBalancedPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
-    performPresetRequest(cool: false, completion: completion)
+    performPresetRequest(.balanced, completion: completion)
   }
 
   func applyCoolPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
-    performPresetRequest(cool: true, completion: completion)
+    performPresetRequest(.cool, completion: completion)
+  }
+
+  func applyMaxPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    performPresetRequest(.max, completion: completion)
   }
 
   private func performPresetRequest(
-    cool: Bool,
+    _ request: PresetRequest,
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
     let connection = connectionFactory()
@@ -257,10 +271,13 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
         message: message
       )))
     }
-    if cool {
-      proxy.applyCoolPreset(withReply: reply)
-    } else {
+    switch request {
+    case .balanced:
       proxy.applyBalancedPreset(withReply: reply)
+    case .cool:
+      proxy.applyCoolPreset(withReply: reply)
+    case .max:
+      proxy.applyMaxPreset(withReply: reply)
     }
   }
 
