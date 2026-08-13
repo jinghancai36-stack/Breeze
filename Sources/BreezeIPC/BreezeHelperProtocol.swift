@@ -4,7 +4,7 @@ import Security
 public enum BreezeHelperConstants {
   public static let machServiceName = "com.cai.Breeze.Helper"
   public static let launchDaemonPlistName = "com.cai.Breeze.Helper.plist"
-  public static let helperVersion = "0.7.0"
+  public static let helperVersion = "0.7.1"
 
   public static func peerSigningRequirement(identifier: String) -> String? {
     var code: SecCode?
@@ -29,7 +29,7 @@ public enum BreezeHelperConstants {
   }
 }
 
-/// The complete privileged boundary through the Balanced slice of Milestone 7.
+/// The complete privileged boundary through the Cool slice of Milestone 7.
 ///
 /// Do not add arbitrary commands, paths, SMC keys, or byte payloads here. Fan
 /// Manual operations accept only a fan index and requested integer RPM. The
@@ -49,6 +49,8 @@ public enum BreezeHelperConstants {
     _ fanID: Int,
     withReply reply: @escaping (Bool, Int, Int, Int, Int, Int, Bool, Bool, String) -> Void)
   func applyBalancedPreset(
+    withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void)
+  func applyCoolPreset(
     withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void)
   func renewControlLease(withReply reply: @escaping (Bool, Int, String) -> Void)
   func getControlLeaseStatus(withReply reply: @escaping (Bool, Int, String) -> Void)

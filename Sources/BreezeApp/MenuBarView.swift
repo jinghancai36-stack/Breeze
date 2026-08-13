@@ -115,9 +115,19 @@ struct MenuBarView: View {
           .disabled(
             state.isApplyingPreset || state.isRestoringAutomaticControl
               || !state.fansApplyingControl.isEmpty)
+          Button {
+            state.applyCoolPreset()
+          } label: {
+            Label(
+              state.activeControlMode == .cool ? "Cool Active" : "Cool",
+              systemImage: "snowflake")
+          }
+          .disabled(
+            state.isApplyingPreset || state.isRestoringAutomaticControl
+              || !state.fansApplyingControl.isEmpty)
           if state.isApplyingPreset { ProgressView().controlSize(.small) }
           Spacer()
-          Text("Dynamic · 35% range")
+          Text("35% / 60%")
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
@@ -138,7 +148,7 @@ struct MenuBarView: View {
       if let preset = state.presetControlStatus {
         Text(
           preset.success
-            ? "Balanced targets: \(preset.targetRPMs.map { "\($0)" }.joined(separator: " / ")) RPM"
+            ? "\(state.activeControlMode.rawValue.capitalized) targets: \(preset.targetRPMs.map { "\($0)" }.joined(separator: " / ")) RPM"
             : preset.message
         )
         .font(.caption)
@@ -227,6 +237,7 @@ struct MenuBarView: View {
     case .automatic: "Apple automatic"
     case .manual: "Manual control active"
     case .balanced: "Balanced active"
+    case .cool: "Cool active"
     }
   }
 

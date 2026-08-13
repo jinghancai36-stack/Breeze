@@ -155,7 +155,7 @@ struct SettingsView: View {
         }
       } footer: {
         Text(
-          "Breeze permits only verified fan 0/1 control and the fixed Balanced preset on MacBookPro18,3. Balanced is calculated independently from each fan's detected min/max range. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
+          "Breeze permits only verified fan 0/1 control and the fixed Balanced and Cool presets on MacBookPro18,3. Each preset is calculated independently from every fan's detected min/max range. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
         )
       }
     }

@@ -136,22 +136,35 @@ final class HelperService: NSObject, BreezeHelperProtocol {
   func applyBalancedPreset(
     withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
   ) {
+    applyPreset(.balanced, reply: reply)
+  }
+
+  func applyCoolPreset(
+    withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
+  ) {
+    applyPreset(.cool, reply: reply)
+  }
+
+  private func applyPreset(
+    _ preset: FanPreset,
+    reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
+  ) {
     let report = operationGate.perform {
       let report: PresetFanReport
       do {
-        report = try presetControllerFactory().apply(.balanced)
+        report = try presetControllerFactory().apply(preset)
       } catch {
         report = PresetFanReport(
-          success: false, preset: .balanced, targetRPMs: [], actualRPMs: [],
+          success: false, preset: preset, targetRPMs: [], actualRPMs: [],
           didRestoreAutomatic: false, message: error.localizedDescription)
       }
       if report.success {
-        watchdog.arm(reason: "Balanced preset verified; awaiting heartbeat.")
-        logger.info("Balanced preset verified: targets=\(report.targetRPMs.description, privacy: .public)")
+        watchdog.arm(reason: "\(preset.displayName) preset verified; awaiting heartbeat.")
+        logger.info("\(preset.displayName, privacy: .public) preset verified: targets=\(report.targetRPMs.description, privacy: .public)")
       } else if report.didRestoreAutomatic {
-        watchdog.disarm(reason: "Failed Balanced preset rolled back to Apple automatic control.")
+        watchdog.disarm(reason: "Failed \(preset.displayName) preset rolled back to Apple automatic control.")
       } else {
-        watchdog.arm(reason: "Balanced preset failed without verified rollback; recovery armed.")
+        watchdog.arm(reason: "\(preset.displayName) preset failed without verified rollback; recovery armed.")
       }
       return report
     }

@@ -2,10 +2,19 @@ import Foundation
 
 enum FanPreset: String, Equatable, Sendable {
   case balanced
+  case cool
 
   var rangeFraction: Float {
     switch self {
     case .balanced: 0.35
+    case .cool: 0.60
+    }
+  }
+
+  var displayName: String {
+    switch self {
+    case .balanced: "Balanced"
+    case .cool: "Cool"
     }
   }
 }
@@ -79,7 +88,7 @@ final class PresetFanController {
             targetRPMs: targets,
             actualRPMs: actuals,
             didRestoreAutomatic: restored,
-            message: "Balanced preset failed on Fan \(fan.rawValue + 1): \(report.message)"
+            message: "\(preset.displayName) preset failed on Fan \(fan.rawValue + 1): \(report.message)"
               + (restored ? " Apple automatic control was restored." : "")
           )
         }
@@ -92,7 +101,7 @@ final class PresetFanController {
         targetRPMs: targets,
         actualRPMs: actuals,
         didRestoreAutomatic: false,
-        message: "Balanced preset reached and verified on both fans."
+        message: "\(preset.displayName) preset reached and verified on both fans."
       )
     } catch {
       return PresetFanReport(

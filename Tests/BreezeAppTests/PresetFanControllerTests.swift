@@ -10,6 +10,23 @@ struct PresetFanControllerTests {
       for: .balanced, minimum: 1_200, maximum: 5_779) == 2_800)
     #expect(try FanPresetPolicy.targetRPM(
       for: .balanced, minimum: 1_200, maximum: 6_241) == 2_950)
+    #expect(try FanPresetPolicy.targetRPM(
+      for: .cool, minimum: 1_200, maximum: 5_779) == 3_950)
+    #expect(try FanPresetPolicy.targetRPM(
+      for: .cool, minimum: 1_200, maximum: 6_241) == 4_200)
+  }
+
+  @Test("Cool applies and verifies the higher dynamic target on both fans")
+  func appliesCool() {
+    let hardware = makeHardware()
+
+    let report = makeController(hardware).apply(.cool)
+
+    #expect(report.success)
+    #expect(report.targetRPMs == [3_950, 4_200])
+    #expect(report.actualRPMs == [3_950, 4_200])
+    #expect(hardware.values[.fan0Mode] == 1)
+    #expect(hardware.values[.fan1Mode] == 1)
   }
 
   @Test("Untrusted preset bounds are rejected")

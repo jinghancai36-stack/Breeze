@@ -198,6 +198,42 @@ struct HelperXPCTests {
     #expect((try await leaseStatus(client)).isActive)
   }
 
+  @Test("Cool dynamically controls both fans and arms a lease over XPC")
+  func coolPresetTransport() async throws {
+    let hardware = TestAutomaticHardware()
+    hardware.values.removeValue(forKey: .forceTest)
+    let gate = ControlOperationGate()
+    let watchdog = ControlLeaseWatchdog(
+      operationGate: gate,
+      restore: { AutomaticControlRestorer(hardware: hardware, pause: {}).restore() },
+      startsTimer: false)
+    let service = HelperService(
+      restorerFactory: { AutomaticControlRestorer(hardware: hardware, pause: {}) },
+      presetControllerFactory: {
+        PresetFanController(hardware: hardware, makeManualController: {
+          ManualFanController(
+            hardware: hardware,
+            settleAfterManualMode: {}, pauseBeforeTargetRetry: {}, pause: {})
+        })
+      },
+      operationGate: gate,
+      watchdog: watchdog)
+    let listener = NSXPCListener.anonymous()
+    let delegate = HelperListenerDelegate(
+      service: service, clientSigningRequirement: nil, expectedClientExecutableURL: nil)
+    listener.delegate = delegate
+    listener.resume()
+    defer { listener.invalidate() }
+
+    let client = HelperClient(
+      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+    let cool = try await applyCool(client)
+
+    #expect(cool.success)
+    #expect(cool.targetRPMs == [3_950, 4_200])
+    #expect((try await leaseStatus(client)).isActive)
+  }
+
   @Test("XPC disconnect followed by heartbeat timeout restores Automatic")
   func disconnectedClientTimesOut() async throws {
     let hardware = TestAutomaticHardware()
@@ -297,6 +333,12 @@ struct HelperXPCTests {
   private func applyBalanced(_ client: HelperClient) async throws -> PresetControlStatus {
     try await withCheckedThrowingContinuation { continuation in
       client.applyBalancedPreset { result in continuation.resume(with: result) }
+    }
+  }
+
+  private func applyCool(_ client: HelperClient) async throws -> PresetControlStatus {
+    try await withCheckedThrowingContinuation { continuation in
+      client.applyCoolPreset { result in continuation.resume(with: result) }
     }
   }
 

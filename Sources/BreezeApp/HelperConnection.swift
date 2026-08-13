@@ -141,6 +141,8 @@ protocol WatchdogServicing: Sendable {
 protocol PresetServicing: Sendable {
   func applyBalancedPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
+  func applyCoolPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
 }
 
 protocol HelperCommunicating:
@@ -204,6 +206,19 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
   func applyBalancedPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
+    performPresetRequest(cool: false, completion: completion)
+  }
+
+  func applyCoolPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    performPresetRequest(cool: true, completion: completion)
+  }
+
+  private func performPresetRequest(
+    cool: Bool,
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
     let connection = connectionFactory()
     let gate = HelperReplyGate(connection: connection, completion: completion)
     connection.remoteObjectInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
@@ -214,7 +229,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
 
     guard
       let proxy = connection.remoteObjectProxyWithErrorHandler({ [logger] error in
-        logger.error("Balanced preset proxy error: \(error.localizedDescription, privacy: .public)")
+        logger.error("Preset proxy error: \(error.localizedDescription, privacy: .public)")
         gate.finish(.failure(HelperConnectionError.rejected))
       }) as? BreezeHelperProtocol
     else {
@@ -226,7 +241,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
       try? await Task.sleep(for: presetTimeout)
       gate.finish(.failure(HelperConnectionError.timedOut))
     }
-    proxy.applyBalancedPreset {
+    let reply: (Bool, Int, Int, Int, Int, Bool, String) -> Void = {
       success, target0, target1, actual0, actual1, restored, message in
       guard !message.isEmpty,
         target0 >= 0, target1 >= 0, actual0 >= 0, actual1 >= 0
@@ -241,6 +256,11 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
         didRestoreAutomatic: restored,
         message: message
       )))
+    }
+    if cool {
+      proxy.applyCoolPreset(withReply: reply)
+    } else {
+      proxy.applyBalancedPreset(withReply: reply)
     }
   }
 

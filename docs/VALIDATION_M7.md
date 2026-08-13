@@ -21,4 +21,20 @@ Validation target: `MacBookPro18,3`, Apple M1 Pro, two fans.
 - Two observations six seconds apart both showed a freshly renewed lease, proving GUI heartbeat continuity.
 - **Restore All to Apple Automatic** disarmed the lease and verified `[0,0]`.
 
-Balanced is fully validated. Cool is the next Phase 7 slice; Max remains gated behind Cool validation.
+## Cool automated evidence
+
+- Debug and optimized Release suites each pass 9 hardware tests and 60 App/Helper tests.
+- Policy and controller tests verify the independent 60% range calculation, two-fan transaction, verification, and rollback guarantees.
+- XPC tests prove the fixed argument-free operation controls both fans and arms the Helper lease.
+- App-state tests prove Cool publishes its targets, enters the correct active mode, and renews the safety lease.
+
+## Cool real hardware evidence — 2026-08-13
+
+- Installed Helper v0.7.1; startup recovery verified `[0,0]`.
+- Fixed diagnostic calculated targets `[3950,4200]` and converged to approximately `[3917,4185]` RPM.
+- With no continuing client heartbeat, the 15-second lease expired and restored `[0,0]`.
+- GUI Cool stabilized at `[3967,4221]` RPM.
+- Two observations six seconds apart showed freshly renewed leases, proving GUI heartbeat continuity.
+- **Apple Automatic** disarmed the lease; the Helper reported `Apple automatic control verified`.
+
+Balanced and Cool are fully validated. Max remains gated behind these two lower presets.

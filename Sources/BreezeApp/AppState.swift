@@ -14,6 +14,7 @@ enum ActiveFanControlMode: String, Equatable, Sendable {
   case automatic
   case manual
   case balanced
+  case cool
 }
 
 @MainActor
@@ -76,7 +77,7 @@ final class AppState {
     helperClient = PreviewHelperClient()
     terminateApp = {}
     helperStatus = .enabled
-    helperVersion = "0.7.0"
+    helperVersion = "0.7.1"
     monitor = nil
     snapshot = previewSnapshot
     lastSuccessfulUpdate = previewSnapshot.capturedAt
@@ -250,7 +251,7 @@ final class AppState {
   }
 
   func setFanAutomatic(fanID: Int) {
-    if activeControlMode == .balanced {
+    if activeControlMode == .balanced || activeControlMode == .cool {
       restoreAutomaticControl()
       return
     }
@@ -278,6 +279,21 @@ final class AppState {
   }
 
   func applyBalancedPreset() {
+    applyPreset(mode: .balanced) { [helperClient] completion in
+      helperClient.applyBalancedPreset(completion: completion)
+    }
+  }
+
+  func applyCoolPreset() {
+    applyPreset(mode: .cool) { [helperClient] completion in
+      helperClient.applyCoolPreset(completion: completion)
+    }
+  }
+
+  private func applyPreset(
+    mode: ActiveFanControlMode,
+    request: (@escaping @Sendable (Result<PresetControlStatus, Error>) -> Void) -> Void
+  ) {
     guard let snapshot,
       snapshot.fans.count == 2,
       snapshot.fans.allSatisfy({ canControlFan($0.id) }),
@@ -287,7 +303,7 @@ final class AppState {
     else { return }
     isApplyingPreset = true
     helperErrorMessage = nil
-    helperClient.applyBalancedPreset { [weak self] result in
+    request { [weak self] result in
       Task { @MainActor in
         guard let self else { return }
         self.isApplyingPreset = false
@@ -298,7 +314,7 @@ final class AppState {
           if status.success {
             self.fanControlStatuses.removeAll()
             self.automaticControlStatus = nil
-            self.activeControlMode = .balanced
+            self.activeControlMode = mode
             self.startLeaseHeartbeat()
           } else if status.didRestoreAutomatic {
             self.activeControlMode = .automatic
@@ -307,7 +323,7 @@ final class AppState {
         case .failure(let error):
           self.presetControlStatus = nil
           self.helperErrorMessage =
-            "Balanced preset failed; the Helper safety lease will restore Automatic: "
+            "\(mode.rawValue.capitalized) preset failed; the Helper safety lease will restore Automatic: "
             + error.localizedDescription
         }
         await self.refresh()
@@ -518,7 +534,7 @@ private struct PreviewHelperInstaller: HelperInstalling {
 
 private struct PreviewHelperClient: HelperCommunicating {
   func probe(completion: @escaping @Sendable (Result<String, Error>) -> Void) {
-    completion(.success("0.7.0"))
+    completion(.success("0.7.1"))
   }
 
   func automaticControlStatus(
@@ -562,6 +578,18 @@ private struct PreviewHelperClient: HelperCommunicating {
       actualRPMs: [2_800, 2_950],
       didRestoreAutomatic: false,
       message: "Balanced preset reached and verified on both fans."
+    )))
+  }
+
+  func applyCoolPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    completion(.success(.init(
+      success: true,
+      targetRPMs: [3_950, 4_200],
+      actualRPMs: [3_950, 4_200],
+      didRestoreAutomatic: false,
+      message: "Cool preset reached and verified on both fans."
     )))
   }
 

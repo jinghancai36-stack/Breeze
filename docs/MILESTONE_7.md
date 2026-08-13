@@ -1,6 +1,6 @@
 # Milestone 7 — Presets
 
-Phase 7 adds `Balanced`, `Cool`, and `Max` in that order. The first slice implements and validates `Balanced`; Cool is the next gated slice and Max remains last.
+Phase 7 adds `Balanced`, `Cool`, and `Max` in that order. Balanced and Cool are validated; Max remains the final gated slice.
 
 ## Balanced policy
 
@@ -10,6 +10,8 @@ For each fan independently:
 target = minRPM + (maxRPM - minRPM) × 0.35
 target = rounded to the nearest 50 RPM
 ```
+
+Cool uses the identical calculation and transaction with a `0.60` range fraction.
 
 No absolute RPM is hard-coded. The root Helper reads and validates both fan ranges before the first write.
 
@@ -28,3 +30,7 @@ No absolute RPM is hard-coded. The root Helper reads and validates both fan rang
 ## Balanced validation
 
 Balanced passed on the verified Mac. Dynamic targets `[2800,2950]`, converged GUI readings around `[2793–2814,2951]`, repeated heartbeat renewal, timeout fallback, and the transition back to `[0,0]` are recorded in `VALIDATION_M7.md`.
+
+## Cool validation
+
+Cool passed on the verified Mac. Dynamic targets `[3950,4200]`, converged GUI readings around `[3967,4221]`, repeated heartbeat renewal, watchdog timeout fallback, and explicit restoration to Apple Automatic are recorded in `VALIDATION_M7.md`.

@@ -98,7 +98,7 @@ selection does not contain the macOS XCTest framework.
 - Both the GUI and root Helper request Automatic before sleep; wake reasserts Automatic and never resumes Manual
 - Developer diagnostics: `--helper-heartbeat` and `--helper-watchdog-status`
 
-## Milestone 7 presets — Balanced slice
+## Milestone 7 presets
 
 - Balanced is calculated separately for each fan at 35% of its detected min-to-max range
 - Targets are rounded to 50 RPM and revalidated by the root Helper before any write
@@ -106,6 +106,8 @@ selection does not contain the macOS XCTest framework.
 - A failure on either fan restores every fan to Apple Automatic
 - Balanced uses the same 5-second heartbeat and 15-second Helper lease as Manual
 - Developer diagnostic: `--helper-balanced`
+- Cool uses 60% of each independently detected fan range with the same transaction and watchdog guarantees
+- Developer diagnostic: `--helper-cool`
 
 ## Safety
 
