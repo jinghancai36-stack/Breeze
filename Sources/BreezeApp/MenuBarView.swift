@@ -18,7 +18,7 @@ struct MenuBarView: View {
       footer
     }
     .padding(18)
-    .frame(width: 360)
+    .frame(width: 380)
     .onAppear { state.setPopoverVisible(true) }
     .onDisappear { state.setPopoverVisible(false) }
   }
@@ -104,48 +104,25 @@ struct MenuBarView: View {
           .font(.caption)
           .foregroundStyle(.secondary)
       } else {
+        presetControls
+        Divider()
         HStack {
-          Button {
-            state.applyBalancedPreset()
-          } label: {
-            Label(
-              state.activeControlMode == .balanced ? "Balanced Active" : "Balanced",
-              systemImage: "scale.3d")
-          }
-          .disabled(
-            state.isApplyingPreset || state.isRestoringAutomaticControl
-              || !state.fansApplyingControl.isEmpty)
-          Button {
-            state.applyCoolPreset()
-          } label: {
-            Label(
-              state.activeControlMode == .cool ? "Cool Active" : "Cool",
-              systemImage: "snowflake")
-          }
-          .disabled(
-            state.isApplyingPreset || state.isRestoringAutomaticControl
-              || !state.fansApplyingControl.isEmpty)
-          Button {
-            state.applyMaxPreset()
-          } label: {
-            Label(
-              state.activeControlMode == .max ? "Max Active" : "Max",
-              systemImage: "fan.fill")
-          }
-          .disabled(
-            state.isApplyingPreset || state.isRestoringAutomaticControl
-              || !state.fansApplyingControl.isEmpty)
-          if state.isApplyingPreset { ProgressView().controlSize(.small) }
-          Spacer()
-          Text("35% / 60% / 100%")
-            .font(.caption2)
+          Text("Manual Control")
+            .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
+          Spacer()
+          Text("Per fan")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
         }
         ForEach(snapshot.fans) { fan in
           FanControlRow(fan: fan, state: state)
         }
-        Button("Restore All to Apple Automatic") {
+        Button {
           state.restoreAutomaticControl()
+        } label: {
+          Text("Restore All to Apple Automatic")
+            .frame(maxWidth: .infinity)
         }
         .disabled(state.isRestoringAutomaticControl || !state.fansApplyingControl.isEmpty)
       }
@@ -177,6 +154,59 @@ struct MenuBarView: View {
           .foregroundStyle(.red)
       }
     }
+  }
+
+  private var presetControls: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack {
+        Text("Presets")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.secondary)
+        Spacer()
+        if state.isApplyingPreset { ProgressView().controlSize(.small) }
+      }
+      HStack(spacing: 8) {
+        presetButton("Balanced", systemImage: "scale.3d", mode: .balanced) {
+          state.applyBalancedPreset()
+        }
+        presetButton("Cool", systemImage: "snowflake", mode: .cool) {
+          state.applyCoolPreset()
+        }
+        presetButton("Max", systemImage: "fan.fill", mode: .max) {
+          state.applyMaxPreset()
+        }
+      }
+      HStack(spacing: 8) {
+        presetFraction("35%")
+        presetFraction("60%")
+        presetFraction("100%")
+      }
+    }
+  }
+
+  private func presetButton(
+    _ title: String,
+    systemImage: String,
+    mode: ActiveFanControlMode,
+    action: @escaping () -> Void
+  ) -> some View {
+    Button(action: action) {
+      Label(
+        title,
+        systemImage: state.activeControlMode == mode ? "checkmark.circle.fill" : systemImage
+      )
+      .frame(maxWidth: .infinity)
+    }
+    .disabled(
+      state.isApplyingPreset || state.isRestoringAutomaticControl
+        || !state.fansApplyingControl.isEmpty)
+  }
+
+  private func presetFraction(_ value: String) -> some View {
+    Text(value)
+      .font(.caption2)
+      .foregroundStyle(.tertiary)
+      .frame(maxWidth: .infinity)
   }
 
   private func temperatures(_ snapshot: HardwareSnapshot) -> some View {
@@ -305,11 +335,19 @@ private struct FanControlRow: View {
         }
         .font(.caption2)
         .foregroundStyle(.secondary)
-        HStack {
-          Button("Apply Manual") {
+        HStack(spacing: 8) {
+          Button {
             state.setFanRPM(fanID: fan.id, rpm: Int(targetRPM.rounded()))
+          } label: {
+            Text("Apply Manual")
+              .frame(maxWidth: .infinity)
           }
-          Button("Automatic") { state.setFanAutomatic(fanID: fan.id) }
+          Button {
+            state.setFanAutomatic(fanID: fan.id)
+          } label: {
+            Text("Automatic")
+              .frame(maxWidth: .infinity)
+          }
         }
         .controlSize(.small)
         .disabled(!state.canControlFan(fan.id) || state.fansApplyingControl.contains(fan.id))
