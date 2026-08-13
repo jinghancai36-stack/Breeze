@@ -26,7 +26,7 @@ The first gate run exposed a test-only asynchronous race in the sleep-safety ass
 
 ## Remaining publication gates
 
-- Run the Release gate again from the clean Phase 9 commit without `BREEZE_ALLOW_DIRTY`.
+- The Release gate passed again from clean Phase 9 commit `7eae008` without `BREEZE_ALLOW_DIRTY`.
 - Generate the source archive from that clean commit and verify its SHA-256 checksum.
 - Confirm the GitHub repository has been created as an empty repository at `jinghancai36-stack/Breeze`.
 - Obtain explicit approval before configuring a remote, pushing commits, or creating a GitHub release.

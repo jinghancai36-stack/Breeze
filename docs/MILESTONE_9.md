@@ -16,7 +16,7 @@ Milestone 9 prepares Breeze for an honest source-only GitHub release. It does no
 - [x] Repository audit covers tracked output, credential file types, large files, common secret patterns, and author-email privacy notice.
 - [x] One-command Release gate covers Debug/Release tests, plist validation, static analysis, isolated Release build, version matching, arm64 architecture, and strict deep signing verification.
 - [x] Source archive script uses `git archive` from a clean commit and emits a SHA-256 checksum.
-- [ ] Clean-worktree Release gate executed on the Phase 9 commit.
+- [x] Clean-worktree Release gate executed on the Phase 9 commit.
 - [ ] v0.8.0 source archive generated and its checksum verified.
 
 ## Publication boundary
