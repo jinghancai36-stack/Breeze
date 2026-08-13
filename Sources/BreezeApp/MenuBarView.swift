@@ -95,7 +95,7 @@ struct MenuBarView: View {
           .foregroundStyle(.secondary)
       } else if state.helperVersion != BreezeHelperConstants.helperVersion {
         Text(
-          "Manual control requires matching Helper v\(BreezeHelperConstants.helperVersion). "
+          "Active control requires matching Helper v\(BreezeHelperConstants.helperVersion). "
             + "Update or approve the Helper in Settings.")
           .font(.caption)
           .foregroundStyle(.orange)
@@ -104,6 +104,23 @@ struct MenuBarView: View {
           .font(.caption)
           .foregroundStyle(.secondary)
       } else {
+        HStack {
+          Button {
+            state.applyBalancedPreset()
+          } label: {
+            Label(
+              state.activeControlMode == .balanced ? "Balanced Active" : "Balanced",
+              systemImage: "scale.3d")
+          }
+          .disabled(
+            state.isApplyingPreset || state.isRestoringAutomaticControl
+              || !state.fansApplyingControl.isEmpty)
+          if state.isApplyingPreset { ProgressView().controlSize(.small) }
+          Spacer()
+          Text("Dynamic · 35% range")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
         ForEach(snapshot.fans) { fan in
           FanControlRow(fan: fan, state: state)
         }
@@ -117,6 +134,15 @@ struct MenuBarView: View {
         Text(status.message)
           .font(.caption)
           .foregroundStyle(status.isAutomatic ? Color.secondary : Color.orange)
+      }
+      if let preset = state.presetControlStatus {
+        Text(
+          preset.success
+            ? "Balanced targets: \(preset.targetRPMs.map { "\($0)" }.joined(separator: " / ")) RPM"
+            : preset.message
+        )
+        .font(.caption)
+        .foregroundStyle(preset.success ? Color.secondary : Color.red)
       }
       if let lease = state.controlLeaseStatus, lease.isActive {
         Label(
@@ -171,8 +197,7 @@ struct MenuBarView: View {
     VStack(spacing: 10) {
       HStack {
         Label(
-          state.fanControlStatuses.values.contains(where: { $0.isManual })
-            ? "Manual control active" : "Apple automatic",
+          activeModeLabel,
           systemImage: "lock.shield")
           .foregroundStyle(.secondary)
         Spacer()
@@ -194,6 +219,14 @@ struct MenuBarView: View {
         }
         .buttonStyle(.plain)
       }
+    }
+  }
+
+  private var activeModeLabel: String {
+    switch state.activeControlMode {
+    case .automatic: "Apple automatic"
+    case .manual: "Manual control active"
+    case .balanced: "Balanced active"
     }
   }
 

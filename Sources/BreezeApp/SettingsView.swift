@@ -155,7 +155,7 @@ struct SettingsView: View {
         }
       } footer: {
         Text(
-          "Milestone 6 permits only fan 0/1 RPM requests on the verified MacBookPro18,3. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
+          "Breeze permits only verified fan 0/1 control and the fixed Balanced preset on MacBookPro18,3. Balanced is calculated independently from each fan's detected min/max range. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
         )
       }
     }

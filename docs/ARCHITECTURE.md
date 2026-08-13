@@ -22,7 +22,7 @@ SwiftUI `MenuBarExtra` using a root-owned observable `AppState`. Hardware pollin
 
 ## BreezeIPC
 
-Owns the Objective-C-compatible XPC protocol and identifiers shared by the app and helper. Milestone 6 exposes eight fixed operations: `ping`, `getHelperVersion`, `getAutomaticControlStatus`, `restoreAutomaticControl`, `setFanRPM`, `setFanAutomatic`, `renewControlLease`, and `getControlLeaseStatus`. Manual calls accept only an integer fan ID and, for setting RPM, an integer request. Lease calls accept no arguments. There is no generic payload, caller-controlled timeout, arbitrary command, path, SMC key, raw mode value, or byte buffer.
+Owns the Objective-C-compatible XPC protocol and identifiers shared by the app and helper. The Balanced slice exposes nine fixed operations: `ping`, `getHelperVersion`, `getAutomaticControlStatus`, `restoreAutomaticControl`, `setFanRPM`, `setFanAutomatic`, `applyBalancedPreset`, `renewControlLease`, and `getControlLeaseStatus`. Balanced and lease calls accept no arguments. Manual calls accept only an integer fan ID and, for setting RPM, an integer request. There is no generic payload, caller-controlled timeout, arbitrary command, path, SMC key, raw mode value, or byte buffer.
 
 ## BreezeHelper
 

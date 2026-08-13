@@ -2,7 +2,7 @@
 
 A lightweight, native fan-controller foundation for Apple Silicon Macs.
 
-Breeze discovers fans, reads current/reported min/max RPM, and presents high-value thermal summaries in a native SwiftUI menu bar app. Milestone 6 adds a Helper-owned safety lease around bounded manual control for the verified `MacBookPro18,3` M1 Pro model. Other hardware remains Monitor Only.
+Breeze discovers fans, reads current/reported min/max RPM, and presents high-value thermal summaries in a native SwiftUI menu bar app. Milestone 7 adds the first dynamically calculated preset on top of the Helper-owned safety lease for the verified `MacBookPro18,3` M1 Pro model. Other hardware remains Monitor Only.
 
 ## Requirements
 
@@ -97,6 +97,15 @@ selection does not contain the macOS XCTest framework.
 - launchd `RunAtLoad` and `KeepAlive` ensure a killed Helper is replaced
 - Both the GUI and root Helper request Automatic before sleep; wake reasserts Automatic and never resumes Manual
 - Developer diagnostics: `--helper-heartbeat` and `--helper-watchdog-status`
+
+## Milestone 7 presets — Balanced slice
+
+- Balanced is calculated separately for each fan at 35% of its detected min-to-max range
+- Targets are rounded to 50 RPM and revalidated by the root Helper before any write
+- Both fan bounds are preflighted before the first write
+- A failure on either fan restores every fan to Apple Automatic
+- Balanced uses the same 5-second heartbeat and 15-second Helper lease as Manual
+- Developer diagnostic: `--helper-balanced`
 
 ## Safety
 

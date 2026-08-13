@@ -34,6 +34,7 @@
 		A0000000000000000000001A /* ManualFanController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* ManualFanController.swift */; };
 		A0000000000000000000001B /* ControlLeaseWatchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001A /* ControlLeaseWatchdog.swift */; };
 		A0000000000000000000001C /* SystemPowerObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001B /* SystemPowerObserver.swift */; };
+		A0000000000000000000001D /* PresetFanController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001C /* PresetFanController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,6 +96,7 @@
 		B00000000000000000000019 /* ManualFanController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualFanController.swift; sourceTree = "<group>"; };
 		B0000000000000000000001A /* ControlLeaseWatchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlLeaseWatchdog.swift; sourceTree = "<group>"; };
 		B0000000000000000000001B /* SystemPowerObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPowerObserver.swift; sourceTree = "<group>"; };
+		B0000000000000000000001C /* PresetFanController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetFanController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -182,7 +184,7 @@
 			sourceTree = "<group>";
 		};
 		D00000000000000000000008 /* BreezeIPC */ = {isa = PBXGroup; children = (B00000000000000000000011 /* BreezeHelperProtocol.swift */, ); path = BreezeIPC; sourceTree = "<group>"; };
-		D00000000000000000000009 /* BreezeHelper */ = {isa = PBXGroup; children = (B00000000000000000000017 /* AutomaticControlRestorer.swift */, B0000000000000000000001A /* ControlLeaseWatchdog.swift */, B00000000000000000000012 /* HelperService.swift */, B00000000000000000000019 /* ManualFanController.swift */, B00000000000000000000018 /* SMCRestoreConnection.swift */, B0000000000000000000001B /* SystemPowerObserver.swift */, B00000000000000000000013 /* main.swift */, ); path = BreezeHelper; sourceTree = "<group>"; };
+		D00000000000000000000009 /* BreezeHelper */ = {isa = PBXGroup; children = (B00000000000000000000017 /* AutomaticControlRestorer.swift */, B0000000000000000000001A /* ControlLeaseWatchdog.swift */, B00000000000000000000012 /* HelperService.swift */, B00000000000000000000019 /* ManualFanController.swift */, B0000000000000000000001C /* PresetFanController.swift */, B00000000000000000000018 /* SMCRestoreConnection.swift */, B0000000000000000000001B /* SystemPowerObserver.swift */, B00000000000000000000013 /* main.swift */, ); path = BreezeHelper; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -269,7 +271,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		F00000000000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000010 /* BreezeHelperProtocol.swift in Helper Sources */, A00000000000000000000017 /* AutomaticControlRestorer.swift in Sources */, A0000000000000000000001B /* ControlLeaseWatchdog.swift in Sources */, A00000000000000000000011 /* HelperService.swift in Sources */, A0000000000000000000001A /* ManualFanController.swift in Sources */, A00000000000000000000018 /* SMCRestoreConnection.swift in Sources */, A0000000000000000000001C /* SystemPowerObserver.swift in Sources */, A00000000000000000000012 /* main.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		F00000000000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000010 /* BreezeHelperProtocol.swift in Helper Sources */, A00000000000000000000017 /* AutomaticControlRestorer.swift in Sources */, A0000000000000000000001B /* ControlLeaseWatchdog.swift in Sources */, A00000000000000000000011 /* HelperService.swift in Sources */, A0000000000000000000001A /* ManualFanController.swift in Sources */, A0000000000000000000001D /* PresetFanController.swift in Sources */, A00000000000000000000018 /* SMCRestoreConnection.swift in Sources */, A0000000000000000000001C /* SystemPowerObserver.swift in Sources */, A00000000000000000000012 /* main.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -285,14 +287,14 @@
 				ARCHS = arm64;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 8;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Breeze-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -306,14 +308,14 @@
 				ARCHS = arm64;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 8;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Breeze-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -321,8 +323,8 @@
 			};
 			name = Release;
 		};
-		I00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 5; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.5.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Debug; };
-		I00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 5; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.5.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Release; };
+		I00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 8; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.7.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Debug; };
+		I00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 8; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.7.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */

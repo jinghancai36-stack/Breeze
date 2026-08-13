@@ -10,6 +10,12 @@ import Observation
   import BreezeIPC
 #endif
 
+enum ActiveFanControlMode: String, Equatable, Sendable {
+  case automatic
+  case manual
+  case balanced
+}
+
 @MainActor
 @Observable
 final class AppState {
@@ -28,6 +34,9 @@ final class AppState {
   private(set) var fanControlStatuses: [Int: FanControlStatus] = [:]
   private(set) var fansApplyingControl: Set<Int> = []
   private(set) var controlLeaseStatus: ControlLeaseStatus?
+  private(set) var presetControlStatus: PresetControlStatus?
+  private(set) var activeControlMode: ActiveFanControlMode = .automatic
+  private(set) var isApplyingPreset = false
 
   @ObservationIgnored private let logger = Logger(
     subsystem: "com.breeze.monitor", category: "Hardware")
@@ -67,7 +76,7 @@ final class AppState {
     helperClient = PreviewHelperClient()
     terminateApp = {}
     helperStatus = .enabled
-    helperVersion = "0.6.1"
+    helperVersion = "0.7.0"
     monitor = nil
     snapshot = previewSnapshot
     lastSuccessfulUpdate = previewSnapshot.capturedAt
@@ -201,6 +210,8 @@ final class AppState {
           self.automaticControlStatus = status
           if status.isAutomatic {
             self.fanControlStatuses.removeAll()
+            self.presetControlStatus = nil
+            self.activeControlMode = .automatic
             self.stopLeaseHeartbeat()
           }
           self.helperErrorMessage = status.isAutomatic ? nil : status.message
@@ -225,7 +236,11 @@ final class AppState {
           self.fanControlStatuses[fanID] = status
           self.automaticControlStatus = nil
           self.helperErrorMessage = status.success ? nil : status.message
-          if status.success && status.isManual { self.startLeaseHeartbeat() }
+          if status.success && status.isManual {
+            self.presetControlStatus = nil
+            self.activeControlMode = .manual
+            self.startLeaseHeartbeat()
+          }
         case .failure(let error):
           self.helperErrorMessage = error.localizedDescription
         }
@@ -235,6 +250,10 @@ final class AppState {
   }
 
   func setFanAutomatic(fanID: Int) {
+    if activeControlMode == .balanced {
+      restoreAutomaticControl()
+      return
+    }
     guard canControlFan(fanID), !fansApplyingControl.contains(fanID) else { return }
     fansApplyingControl.insert(fanID)
     helperErrorMessage = nil
@@ -247,10 +266,49 @@ final class AppState {
           self.fanControlStatuses[fanID] = status
           self.helperErrorMessage = status.success ? nil : status.message
           if !self.fanControlStatuses.values.contains(where: { $0.isManual }) {
+            self.activeControlMode = .automatic
             self.stopLeaseHeartbeat()
           }
         case .failure(let error):
           self.helperErrorMessage = error.localizedDescription
+        }
+        await self.refresh()
+      }
+    }
+  }
+
+  func applyBalancedPreset() {
+    guard let snapshot,
+      snapshot.fans.count == 2,
+      snapshot.fans.allSatisfy({ canControlFan($0.id) }),
+      !isApplyingPreset,
+      !isRestoringAutomaticControl,
+      fansApplyingControl.isEmpty
+    else { return }
+    isApplyingPreset = true
+    helperErrorMessage = nil
+    helperClient.applyBalancedPreset { [weak self] result in
+      Task { @MainActor in
+        guard let self else { return }
+        self.isApplyingPreset = false
+        switch result {
+        case .success(let status):
+          self.presetControlStatus = status
+          self.helperErrorMessage = status.success ? nil : status.message
+          if status.success {
+            self.fanControlStatuses.removeAll()
+            self.automaticControlStatus = nil
+            self.activeControlMode = .balanced
+            self.startLeaseHeartbeat()
+          } else if status.didRestoreAutomatic {
+            self.activeControlMode = .automatic
+            self.stopLeaseHeartbeat()
+          }
+        case .failure(let error):
+          self.presetControlStatus = nil
+          self.helperErrorMessage =
+            "Balanced preset failed; the Helper safety lease will restore Automatic: "
+            + error.localizedDescription
         }
         await self.refresh()
       }
@@ -281,7 +339,11 @@ final class AppState {
         switch result {
         case .success(let status):
           self.automaticControlStatus = status
-          if status.isAutomatic { self.fanControlStatuses.removeAll() }
+          if status.isAutomatic {
+            self.fanControlStatuses.removeAll()
+            self.presetControlStatus = nil
+            self.activeControlMode = .automatic
+          }
           self.helperErrorMessage = status.isAutomatic ? nil : status.message
           if status.isAutomatic { self.stopLeaseHeartbeat() }
         case .failure(let error):
@@ -340,7 +402,7 @@ final class AppState {
     leaseHeartbeatTask = Task { [weak self] in
       while !Task.isCancelled {
         guard let self else { return }
-        guard self.fanControlStatuses.values.contains(where: { $0.isManual }) else {
+        guard self.activeControlMode != .automatic else {
           self.leaseHeartbeatTask = nil
           return
         }
@@ -360,6 +422,8 @@ final class AppState {
           if !lease.isActive {
             self.helperErrorMessage = lease.message
             self.fanControlStatuses.removeAll()
+            self.presetControlStatus = nil
+            self.activeControlMode = .automatic
             self.leaseHeartbeatTask = nil
             self.checkAutomaticControl()
             return
@@ -454,7 +518,7 @@ private struct PreviewHelperInstaller: HelperInstalling {
 
 private struct PreviewHelperClient: HelperCommunicating {
   func probe(completion: @escaping @Sendable (Result<String, Error>) -> Void) {
-    completion(.success("0.6.1"))
+    completion(.success("0.7.0"))
   }
 
   func automaticControlStatus(
@@ -487,6 +551,18 @@ private struct PreviewHelperClient: HelperCommunicating {
       success: true, fanID: fanID, requestedRPM: 0, appliedRPM: 0, actualRPM: 2_400,
       minimumRPM: 1_200, maximumRPM: fanID == 0 ? 5_779 : 6_241,
       isManual: false, didRestoreAutomatic: false, message: "Apple automatic control.")))
+  }
+
+  func applyBalancedPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    completion(.success(.init(
+      success: true,
+      targetRPMs: [2_800, 2_950],
+      actualRPMs: [2_800, 2_950],
+      didRestoreAutomatic: false,
+      message: "Balanced preset reached and verified on both fans."
+    )))
   }
 
   func renewControlLease(

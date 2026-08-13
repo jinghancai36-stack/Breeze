@@ -20,6 +20,7 @@ final class TestAutomaticHardware: ManualFanHardware {
   var manualModeWriteSticks = true
   var automaticModeReadbacksBeforeStick = 0
   var targetWriteFails = false
+  var targetWriteFailingFans: Set<VerifiedFan> = []
   var ignoredTargetWorkerWrites = 0
   var targetReadbackOffset: Float = 0
   var followsTarget = true
@@ -73,7 +74,9 @@ final class TestAutomaticHardware: ManualFanHardware {
   }
   func writeTargetRPM(_ rpm: Float, for fan: VerifiedFan) throws {
     events.append("target:\(fan.rawValue):\(Int(rpm))")
-    if targetWriteFails { throw AutomaticControlError.firmware(1) }
+    if targetWriteFails || targetWriteFailingFans.contains(fan) {
+      throw AutomaticControlError.firmware(1)
+    }
     targets[fan] = rpm
     if followsTarget { actuals[fan] = rpm }
   }

@@ -87,19 +87,25 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
   let result: Result<String, Error>
   var automaticResult: Result<AutomaticControlStatus, Error>
   var leaseResult: Result<ControlLeaseStatus, Error>
+  var presetResult: Result<PresetControlStatus, Error>
   private(set) var restoreCount = 0
   private(set) var renewalCount = 0
+  private(set) var presetCount = 0
 
   init(
     result: Result<String, Error>,
     automaticResult: Result<AutomaticControlStatus, Error> = .success(
       .init(isAutomatic: true, fanModes: [3, 3], forceTest: 0, message: "Automatic")),
     leaseResult: Result<ControlLeaseStatus, Error> = .success(
-      .init(isActive: true, remainingSeconds: 15, message: "Lease renewed"))
+      .init(isActive: true, remainingSeconds: 15, message: "Lease renewed")),
+    presetResult: Result<PresetControlStatus, Error> = .success(.init(
+      success: true, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 2_950],
+      didRestoreAutomatic: false, message: "Balanced"))
   ) {
     self.result = result
     self.automaticResult = automaticResult
     self.leaseResult = leaseResult
+    self.presetResult = presetResult
   }
 
   func probe(completion: @escaping @Sendable (Result<String, Error>) -> Void) {
@@ -151,6 +157,13 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
   ) {
     completion(.success(.init(
       isActive: false, remainingSeconds: 0, message: "No manual-control lease is active.")))
+  }
+
+  func applyBalancedPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    presetCount += 1
+    completion(presetResult)
   }
 }
 
@@ -233,7 +246,7 @@ struct AppStateTests {
   @Test("Helper registration and ping state stay in AppState")
   func helperState() async throws {
     let installer = StubHelperInstaller()
-    let helper = StubHelperClient(result: .success("0.6.1"))
+    let helper = StubHelperClient(result: .success("0.7.0"))
     let state = AppState(
       monitor: StubMonitor(),
       helperInstaller: installer,
@@ -249,7 +262,7 @@ struct AppStateTests {
     for _ in 0..<50 where state.helperVersion == nil {
       try await Task.sleep(for: .milliseconds(10))
     }
-    #expect(state.helperVersion == "0.6.1")
+    #expect(state.helperVersion == "0.7.0")
     #expect(state.helperErrorMessage == nil)
 
     state.uninstallHelper()
@@ -266,7 +279,7 @@ struct AppStateTests {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
     let helper = StubHelperClient(
-      result: .success("0.6.1"),
+      result: .success("0.7.0"),
       automaticResult: .success(.init(
         isAutomatic: false, fanModes: [1, 0], forceTest: nil,
         message: "Fan 0 remained manual.")))
@@ -292,7 +305,7 @@ struct AppStateTests {
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
-      helperClient: StubHelperClient(result: .success("0.6.1"))
+      helperClient: StubHelperClient(result: .success("0.7.0"))
     )
 
     await state.refreshForTesting()
@@ -322,7 +335,7 @@ struct AppStateTests {
   func manualFanState() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.6.1"))
+    let client = StubHelperClient(result: .success("0.7.0"))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
@@ -362,6 +375,68 @@ struct AppStateTests {
     #expect(state.controlLeaseStatus?.isActive == true)
   }
 
+  @Test("Balanced publishes dynamic targets and uses the safety heartbeat")
+  func balancedState() async throws {
+    let installer = StubHelperInstaller()
+    installer.currentStatus = .enabled
+    let client = StubHelperClient(result: .success("0.7.0"))
+    let state = AppState(
+      monitor: StubMonitor(controlVerified: true),
+      helperInstaller: installer,
+      helperClient: client)
+
+    await state.refreshForTesting()
+    state.pingHelper()
+    for _ in 0..<50 where state.helperVersion == nil {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    state.applyBalancedPreset()
+    for _ in 0..<50 where client.presetCount == 0 || client.renewalCount == 0 {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    #expect(client.presetCount == 1)
+    #expect(state.activeControlMode == .balanced)
+    #expect(state.presetControlStatus?.targetRPMs == [2_800, 2_950])
+    #expect(state.controlLeaseStatus?.isActive == true)
+
+    state.restoreAutomaticControl()
+    for _ in 0..<50 where state.activeControlMode != .automatic {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(state.presetControlStatus == nil)
+    #expect(state.controlLeaseStatus == nil)
+  }
+
+  @Test("A failed Balanced request never renews an uncertain control state")
+  func failedBalancedDoesNotHeartbeat() async throws {
+    let installer = StubHelperInstaller()
+    installer.currentStatus = .enabled
+    let client = StubHelperClient(
+      result: .success("0.7.0"),
+      presetResult: .success(.init(
+        success: false, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 0],
+        didRestoreAutomatic: false, message: "Second fan failed.")))
+    let state = AppState(
+      monitor: StubMonitor(controlVerified: true),
+      helperInstaller: installer,
+      helperClient: client)
+
+    await state.refreshForTesting()
+    state.pingHelper()
+    for _ in 0..<50 where state.helperVersion == nil {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    state.applyBalancedPreset()
+    for _ in 0..<50 where state.presetControlStatus == nil {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    #expect(state.activeControlMode == .automatic)
+    #expect(client.renewalCount == 0)
+    #expect(state.helperErrorMessage == "Second fan failed.")
+  }
+
   @Test("A mismatched Helper version keeps Manual disabled")
   func helperVersionGate() async throws {
     let installer = StubHelperInstaller()
@@ -387,7 +462,7 @@ struct AppStateTests {
   func sleepSafety() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.6.1"))
+    let client = StubHelperClient(result: .success("0.7.0"))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
@@ -426,7 +501,7 @@ struct AppStateTests {
     let state = AppState(
       monitor: StubMonitor(),
       helperInstaller: installer,
-      helperClient: StubHelperClient(result: .success("0.6.1")),
+      helperClient: StubHelperClient(result: .success("0.7.0")),
       terminateApp: { didTerminate = true }
     )
 
@@ -455,7 +530,7 @@ struct AppStateTests {
       monitor: StubMonitor(),
       helperInstaller: installer,
       helperClient: StubHelperClient(
-        result: .success("0.6.1"), automaticResult: .success(failedStatus)),
+        result: .success("0.7.0"), automaticResult: .success(failedStatus)),
       terminateApp: { didTerminate = true }
     )
 

@@ -10,13 +10,15 @@ final class HelperService: NSObject, BreezeHelperProtocol {
   private let logger = Logger(subsystem: "com.breeze.monitor", category: "Helper")
   private let restorerFactory: () throws -> AutomaticControlRestorer
   private let manualControllerFactory: () throws -> ManualFanController
+  private let presetControllerFactory: () throws -> PresetFanController
   private let operationGate: ControlOperationGate
   private let watchdog: ControlLeaseWatchdog
 
   override convenience init() {
     self.init(
       restorerFactory: { AutomaticControlRestorer(hardware: try SMCRestoreConnection()) },
-      manualControllerFactory: { ManualFanController(hardware: try SMCRestoreConnection()) }
+      manualControllerFactory: { ManualFanController(hardware: try SMCRestoreConnection()) },
+      presetControllerFactory: { PresetFanController(hardware: try SMCRestoreConnection()) }
     )
   }
 
@@ -25,11 +27,15 @@ final class HelperService: NSObject, BreezeHelperProtocol {
     manualControllerFactory: @escaping () throws -> ManualFanController = {
       ManualFanController(hardware: try SMCRestoreConnection())
     },
+    presetControllerFactory: @escaping () throws -> PresetFanController = {
+      PresetFanController(hardware: try SMCRestoreConnection())
+    },
     operationGate: ControlOperationGate = ControlOperationGate(),
     watchdog: ControlLeaseWatchdog? = nil
   ) {
     self.restorerFactory = restorerFactory
     self.manualControllerFactory = manualControllerFactory
+    self.presetControllerFactory = presetControllerFactory
     self.operationGate = operationGate
     self.watchdog = watchdog ?? ControlLeaseWatchdog(operationGate: operationGate, restore: {
       do {
@@ -125,6 +131,39 @@ final class HelperService: NSObject, BreezeHelperProtocol {
       return report
     }
     send(report, to: reply)
+  }
+
+  func applyBalancedPreset(
+    withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
+  ) {
+    let report = operationGate.perform {
+      let report: PresetFanReport
+      do {
+        report = try presetControllerFactory().apply(.balanced)
+      } catch {
+        report = PresetFanReport(
+          success: false, preset: .balanced, targetRPMs: [], actualRPMs: [],
+          didRestoreAutomatic: false, message: error.localizedDescription)
+      }
+      if report.success {
+        watchdog.arm(reason: "Balanced preset verified; awaiting heartbeat.")
+        logger.info("Balanced preset verified: targets=\(report.targetRPMs.description, privacy: .public)")
+      } else if report.didRestoreAutomatic {
+        watchdog.disarm(reason: "Failed Balanced preset rolled back to Apple automatic control.")
+      } else {
+        watchdog.arm(reason: "Balanced preset failed without verified rollback; recovery armed.")
+      }
+      return report
+    }
+    reply(
+      report.success,
+      report.targetRPMs.indices.contains(0) ? report.targetRPMs[0] : 0,
+      report.targetRPMs.indices.contains(1) ? report.targetRPMs[1] : 0,
+      report.actualRPMs.indices.contains(0) ? report.actualRPMs[0] : 0,
+      report.actualRPMs.indices.contains(1) ? report.actualRPMs[1] : 0,
+      report.didRestoreAutomatic,
+      report.message
+    )
   }
 
   func renewControlLease(withReply reply: @escaping (Bool, Int, String) -> Void) {

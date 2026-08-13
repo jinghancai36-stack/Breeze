@@ -107,6 +107,14 @@ struct ControlLeaseStatus: Equatable, Sendable {
   let message: String
 }
 
+struct PresetControlStatus: Equatable, Sendable {
+  let success: Bool
+  let targetRPMs: [Int]
+  let actualRPMs: [Int]
+  let didRestoreAutomatic: Bool
+  let message: String
+}
+
 protocol AutomaticControlServicing: Sendable {
   func automaticControlStatus(
     completion: @escaping @Sendable (Result<AutomaticControlStatus, Error>) -> Void)
@@ -130,19 +138,31 @@ protocol WatchdogServicing: Sendable {
     completion: @escaping @Sendable (Result<ControlLeaseStatus, Error>) -> Void)
 }
 
+protocol PresetServicing: Sendable {
+  func applyBalancedPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
+}
+
 protocol HelperCommunicating:
-  HelperProbing, AutomaticControlServicing, ManualFanServicing, WatchdogServicing {}
+  HelperProbing, AutomaticControlServicing, ManualFanServicing, WatchdogServicing,
+  PresetServicing {}
 
 final class HelperClient: HelperCommunicating, @unchecked Sendable {
   private let connectionFactory: @Sendable () -> NSXPCConnection
   private let serverSigningRequirement: String?
   private let timeout: Duration
   private let manualTimeout: Duration
+  private let presetTimeout: Duration
   private let logger = Logger(subsystem: "com.breeze.monitor", category: "XPC")
 
-  init(timeout: Duration = .seconds(3), manualTimeout: Duration = .seconds(18)) {
+  init(
+    timeout: Duration = .seconds(3),
+    manualTimeout: Duration = .seconds(18),
+    presetTimeout: Duration = .seconds(36)
+  ) {
     self.timeout = timeout
     self.manualTimeout = manualTimeout
+    self.presetTimeout = presetTimeout
     serverSigningRequirement = BreezeHelperConstants.peerSigningRequirement(
       identifier: BreezeHelperConstants.machServiceName)
     connectionFactory = {
@@ -156,10 +176,12 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
   init(
     endpoint: NSXPCListenerEndpoint,
     timeout: Duration = .seconds(3),
-    manualTimeout: Duration = .seconds(18)
+    manualTimeout: Duration = .seconds(18),
+    presetTimeout: Duration = .seconds(36)
   ) {
     self.timeout = timeout
     self.manualTimeout = manualTimeout
+    self.presetTimeout = presetTimeout
     serverSigningRequirement = nil
     connectionFactory = { NSXPCConnection(listenerEndpoint: endpoint) }
   }
@@ -177,6 +199,49 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     completion: @escaping @Sendable (Result<FanControlStatus, Error>) -> Void
   ) {
     performManualRequest(fanID: fanID, requestedRPM: 0, automatic: true, completion: completion)
+  }
+
+  func applyBalancedPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    let connection = connectionFactory()
+    let gate = HelperReplyGate(connection: connection, completion: completion)
+    connection.remoteObjectInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
+    if let serverSigningRequirement { connection.setCodeSigningRequirement(serverSigningRequirement) }
+    connection.interruptionHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
+    connection.invalidationHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
+    connection.resume()
+
+    guard
+      let proxy = connection.remoteObjectProxyWithErrorHandler({ [logger] error in
+        logger.error("Balanced preset proxy error: \(error.localizedDescription, privacy: .public)")
+        gate.finish(.failure(HelperConnectionError.rejected))
+      }) as? BreezeHelperProtocol
+    else {
+      gate.finish(.failure(HelperConnectionError.unavailable))
+      return
+    }
+
+    Task {
+      try? await Task.sleep(for: presetTimeout)
+      gate.finish(.failure(HelperConnectionError.timedOut))
+    }
+    proxy.applyBalancedPreset {
+      success, target0, target1, actual0, actual1, restored, message in
+      guard !message.isEmpty,
+        target0 >= 0, target1 >= 0, actual0 >= 0, actual1 >= 0
+      else {
+        gate.finish(.failure(HelperConnectionError.invalidReport))
+        return
+      }
+      gate.finish(.success(.init(
+        success: success,
+        targetRPMs: [target0, target1],
+        actualRPMs: [actual0, actual1],
+        didRestoreAutomatic: restored,
+        message: message
+      )))
+    }
   }
 
   private func performManualRequest(

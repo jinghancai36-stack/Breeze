@@ -2,6 +2,8 @@
 
 Breeze writes undocumented AppleSMC controls, so manual fan control is denied unless every required safety condition is known and verified. This document describes the Milestone 6 safety boundary.
 
+The Milestone 7 Balanced preset remains inside the same boundary: the Helper derives each target from that fan's validated min/max range, preflights both fans before writing, and restores all fans if either application fails.
+
 ## Implemented in Milestone 5
 
 - **Minimum and maximum RPM protection:** the root Helper re-reads each selected fan's hardware minimum and maximum for every request. It rejects missing, non-finite, reversed, or implausible bounds and clamps the requested RPM to the accepted range.
