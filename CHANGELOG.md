@@ -1,0 +1,29 @@
+# Changelog
+
+All notable Breeze changes are recorded here. Breeze follows semantic versioning for source releases, while build numbers identify local app artifacts.
+
+## [Unreleased]
+
+### Planned
+
+- Public source repository and reproducible source archive.
+- Developer ID signing, notarization, and clean-Mac installation testing when the required Apple account is available.
+
+## [0.8.0] — 2026-08-13
+
+### Added
+
+- CPU, GPU, memory, battery, and fan monitoring in a native menu bar interface.
+- Apple Automatic, Balanced, Cool, Max, and independently bounded Manual fan controls on the verified `MacBookPro18,3`.
+- Privileged Helper with a narrow XPC protocol, peer validation, automatic startup recovery, and a fixed safety lease.
+- Automatic recovery on GUI loss, Helper restart, sleep, wake, reboot, failed control, and verified in-app quit.
+- Launch at Login, four menu bar display modes, tabbed Settings, hardware support details, and About information.
+- Numeric transitions for temperature and RPM readings and reliable Settings-window activation.
+
+### Safety boundary
+
+- Fan writes remain disabled on every model except the explicitly verified two-fan `MacBookPro18,3`.
+- A public fan-control binary is not provided without Developer ID signing and notarization.
+
+[Unreleased]: https://github.com/jinghancai36-stack/Breeze/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/jinghancai36-stack/Breeze/releases/tag/v0.8.0

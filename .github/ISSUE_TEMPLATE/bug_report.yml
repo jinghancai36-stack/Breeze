@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a reproducible Breeze monitoring, interface, or lifecycle problem.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If fan behavior appears unsafe, restore Apple Automatic control before continuing. Do not include passwords, certificates, serial numbers, or unrelated personal paths.
+  - type: input
+    id: version
+    attributes:
+      label: Breeze version and commit
+      placeholder: "0.8.0 (13), commit 912321b"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Mac model identifier and macOS version
+      placeholder: "MacBookPro18,3, macOS 26.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: helper
+    attributes:
+      label: Helper state
+      options:
+        - Not installed / Monitor Only
+        - Installed and connected
+        - Approval required
+        - Installed but unavailable
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include the active control mode and whether this followed sleep, wake, reboot, crash, or update.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized diagnostics
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I restored or verified Apple Automatic control before filing this report.
+          required: true
+        - label: I removed passwords, certificates, serial numbers, and unrelated personal paths.
+          required: true

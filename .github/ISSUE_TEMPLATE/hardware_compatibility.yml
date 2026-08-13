@@ -1,0 +1,45 @@
+name: Hardware compatibility report
+description: Submit read-only evidence for an Apple Silicon Mac model.
+title: "[Hardware]: "
+labels: ["hardware", "monitor-only"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A compatibility report does not enable fan writes. Never bypass the model whitelist or test arbitrary SMC writes.
+  - type: input
+    id: model
+    attributes:
+      label: Exact model identifier
+      placeholder: "MacBookPro18,3"
+    validations:
+      required: true
+  - type: input
+    id: chip
+    attributes:
+      label: Chip and fan count
+      placeholder: "Apple M1 Pro, 2 fans"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+    validations:
+      required: true
+  - type: textarea
+    id: readings
+    attributes:
+      label: Sanitized read-only results
+      description: Include detected fan minimum/maximum/current RPM and available temperature categories.
+    validations:
+      required: true
+  - type: checkboxes
+    id: restrictions
+    attributes:
+      label: Confirmation
+      options:
+        - label: I did not modify the whitelist, issue fan writes, or disable Breeze safety checks.
+          required: true
+        - label: I removed serial numbers, usernames, and unrelated personal paths.
+          required: true

@@ -166,6 +166,22 @@ Breeze uses undocumented/private hardware interfaces. Availability varies betwee
 
 See [SAFETY.md](SAFETY.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SMC_NOTES.md](docs/SMC_NOTES.md), and the milestone validation records under [docs](docs).
 
+## Source release and recovery
+
+The local release gate validates the repository, Debug and optimized tests, property lists, static analysis, an isolated Release build, version consistency, arm64 architecture, and local code signing:
+
+```sh
+./scripts/release-check.sh
+```
+
+From a clean commit, create a source-only archive and SHA-256 checksum with:
+
+```sh
+./scripts/package-source.sh
+```
+
+Read [Installation and Recovery](docs/INSTALLATION_AND_RECOVERY.md) before installing or removing the Helper. See [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), and the [v0.8.0 release notes](docs/releases/v0.8.0.md) for publication details.
+
 ## Contributing
 
 Compatibility reports, documentation, UI improvements, and tests are welcome. Changes to SMC writes, Helper security, fan bounds, or recovery behavior require additional safety evidence. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.

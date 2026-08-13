@@ -12,4 +12,5 @@ Config/Local.xcconfig
 *.mobileprovision
 build/
 dist/
+artifacts/
 *.xcworkspace/xcuserdata/

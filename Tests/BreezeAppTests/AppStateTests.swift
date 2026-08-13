@@ -566,7 +566,10 @@ struct AppStateTests {
 
     NSWorkspace.shared.notificationCenter.post(
       name: NSWorkspace.willSleepNotification, object: nil)
-    for _ in 0..<50 where client.restoreCount == 0 {
+    for _ in 0..<50
+    where client.restoreCount == 0 || !state.fanControlStatuses.isEmpty
+      || state.isRestoringAutomaticControl
+    {
       try await Task.sleep(for: .milliseconds(10))
     }
     #expect(client.restoreCount == 1)
