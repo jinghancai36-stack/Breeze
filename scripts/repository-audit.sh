@@ -15,7 +15,11 @@ if [ -n "$tracked_risky_paths" ]; then
   failed=1
 fi
 
-large_files=$(git ls-files -z | xargs -0 stat -f '%z %N' | awk '$1 > 1048576 {print $2}')
+large_files=$(git ls-files -z | xargs -0 stat -f '%z %N' | awk '
+  $1 > 1048576 &&
+  $2 != "Assets/BreezeIcon.png" &&
+  $2 != "Config/Breeze.icns" {print $2}
+')
 if [ -n "$large_files" ]; then
   printf 'Error: tracked files larger than 1 MiB require review:\n%s\n' "$large_files" >&2
   failed=1

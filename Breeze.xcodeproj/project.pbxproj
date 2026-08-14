@@ -39,6 +39,7 @@
 		A0000000000000000000001F /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001E /* Localization.swift */; };
 		A00000000000000000000020 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001F /* Localizable.xcstrings */; };
 		A00000000000000000000021 /* Breeze.icns in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* Breeze.icns */; };
+		A00000000000000000000022 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* DashboardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -106,6 +107,7 @@
 		B0000000000000000000001F /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		B00000000000000000000020 /* Breeze.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Breeze.icns; sourceTree = "<group>"; };
 		B00000000000000000000021 /* BreezeIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BreezeIcon.png; sourceTree = "<group>"; };
+		B00000000000000000000022 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +159,7 @@
 				B00000000000000000000010 /* HelperConnection.swift */,
 				B0000000000000000000001D /* FanCurvePolicy.swift */,
 				B0000000000000000000001E /* Localization.swift */,
+				B00000000000000000000022 /* DashboardView.swift */,
 			);
 			path = BreezeApp;
 			sourceTree = "<group>";
@@ -288,6 +291,7 @@
 				A0000000000000000000000F /* BreezeHelperProtocol.swift in App Sources */,
 				A0000000000000000000001E /* FanCurvePolicy.swift in Sources */,
 				A0000000000000000000001F /* Localization.swift in Sources */,
+				A00000000000000000000022 /* DashboardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

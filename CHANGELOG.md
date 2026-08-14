@@ -10,6 +10,7 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 - English and Simplified Chinese interface using an Xcode String Catalog.
 - Fan Curve settings with current stage, control temperature, thresholds, and safety behavior.
 - A native macOS application icon with a cool-blue five-blade fan mark.
+- An on-demand Breeze dashboard window with Overview, Cooling, Curves, and Providers sections.
 
 ### Safety
 

@@ -67,7 +67,7 @@ After opening Breeze, use **Settings → Helper → Install Helper** and approve
 
 ## Interface
 
-The menu bar panel is intentionally compact: thermal and fan readings appear first, followed by the optional automatic curve, fixed presets, independent Manual controls, Apple Automatic restoration, and visible safety status. The curve uses the higher CPU/GPU temperature and switches only between already-verified fixed presets. Its thresholds and current stage are also visible in Settings.
+The menu bar panel remains intentionally compact: thermal and fan readings appear first, followed by the optional automatic curve, fixed presets, independent Manual controls, Apple Automatic restoration, and visible safety status. A separate on-demand Breeze window provides Overview, Cooling, Curves, and Providers workspaces for richer controls without expanding the menu bar panel. It opens from the small window button in the panel header and stays closed during background login launch.
 
 ## Diagnostic CLI
 

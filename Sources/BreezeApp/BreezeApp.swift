@@ -33,6 +33,12 @@ struct BreezeApp: App {
     }
     .menuBarExtraStyle(.window)
 
+    WindowGroup("Breeze", id: DashboardWindow.sceneID, for: DashboardWindow.self) { _ in
+      DashboardView(state: state)
+    }
+    .defaultSize(width: 900, height: 620)
+    .windowResizability(.contentMinSize)
+
     Settings {
       SettingsView(state: state)
     }
@@ -96,7 +102,8 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
         case .success(let status):
           Self.finish(status.diagnosticDescription, success: status.isAutomatic)
         case .failure(let error):
-          Self.finish("Automatic-control status failed: \(error.localizedDescription)", success: false)
+          Self.finish(
+            "Automatic-control status failed: \(error.localizedDescription)", success: false)
         }
       }
     case "--helper-restore-auto":
@@ -126,7 +133,8 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
             case .success(let status):
               Self.finish(status.diagnosticDescription, success: status.success)
             case .failure(let error):
-              Self.finish("Manual fan request failed: \(error.localizedDescription)", success: false)
+              Self.finish(
+                "Manual fan request failed: \(error.localizedDescription)", success: false)
             }
           }
         case .success(let version):
@@ -275,8 +283,8 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
   }
 }
 
-private extension HelperRegistrationStatus {
-  var diagnosticName: String {
+extension HelperRegistrationStatus {
+  fileprivate var diagnosticName: String {
     switch self {
     case .notRegistered: "not registered"
     case .enabled: "enabled"

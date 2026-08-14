@@ -10,6 +10,7 @@ import SwiftUI
 
 struct MenuBarView: View {
   let state: AppState
+  @Environment(\.openWindow) private var openWindow
   @Environment(\.openSettings) private var openSettings
 
   var body: some View {
@@ -31,6 +32,13 @@ struct MenuBarView: View {
         Text("Breeze")
           .font(.title2.weight(.semibold))
         Spacer()
+        Button {
+          showDashboard()
+        } label: {
+          Image(systemName: "macwindow")
+        }
+        .buttonStyle(.plain)
+        .help(L10n.text("action.openDashboard", fallback: "Open Breeze window"))
         Button {
           state.refreshNow()
         } label: {
@@ -383,6 +391,19 @@ struct MenuBarView: View {
       let settingsWindow = NSApplication.shared.windows
         .first { !($0 is NSPanel) && $0.canBecomeKey }
       settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+  }
+
+  private func showDashboard() {
+    openWindow(id: DashboardWindow.sceneID, value: DashboardWindow.main)
+    NSApplication.shared.activate(ignoringOtherApps: true)
+
+    Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(100))
+      NSApplication.shared.activate(ignoringOtherApps: true)
+      NSApplication.shared.windows
+        .first { $0.title == "Breeze" && !($0 is NSPanel) }?
+        .makeKeyAndOrderFront(nil)
     }
   }
 
