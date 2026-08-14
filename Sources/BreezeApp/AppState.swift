@@ -43,26 +43,34 @@ final class AppState {
   private(set) var isFanCurveEnabled = false
   private(set) var fanCurveStage: FanCurveStage = .automatic
   private(set) var fanCurveTemperature: Double?
+  private(set) var fanCurveTargetPercent: Int?
+  private(set) var fanCurveConfiguration: FanCurveConfiguration
+  private(set) var thermalHistory: [ThermalHistorySample] = []
 
   @ObservationIgnored private let logger = Logger(
     subsystem: "com.breeze.monitor", category: "Hardware")
   @ObservationIgnored private let monitor: (any HardwareMonitoring)?
   @ObservationIgnored private let helperInstaller: any HelperInstalling
   @ObservationIgnored private let helperClient: any HelperCommunicating
+  @ObservationIgnored private let curveConfigurationStore: CurveConfigurationStore
   @ObservationIgnored private let terminateApp: @MainActor () -> Void
   @ObservationIgnored private var pollingTask: Task<Void, Never>?
   @ObservationIgnored private var leaseHeartbeatTask: Task<Void, Never>?
   @ObservationIgnored private var controlRequestGeneration = 0
+  @ObservationIgnored private var fanCurveDecisionState = FanCurveDecisionState()
   @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
 
   init(
     monitor: (any HardwareMonitoring)? = nil,
     helperInstaller: any HelperInstalling = SystemHelperInstaller(),
     helperClient: any HelperCommunicating = HelperClient(),
+    curveConfigurationStore: CurveConfigurationStore = CurveConfigurationStore(),
     terminateApp: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) }
   ) {
     self.helperInstaller = helperInstaller
     self.helperClient = helperClient
+    self.curveConfigurationStore = curveConfigurationStore
+    fanCurveConfiguration = curveConfigurationStore.load()
     self.terminateApp = terminateApp
     helperStatus = helperInstaller.status
     if let monitor {
@@ -81,6 +89,8 @@ final class AppState {
   init(previewSnapshot: HardwareSnapshot) {
     helperInstaller = PreviewHelperInstaller()
     helperClient = PreviewHelperClient()
+    curveConfigurationStore = CurveConfigurationStore()
+    fanCurveConfiguration = .default
     terminateApp = {}
     helperStatus = .enabled
     helperVersion = BreezeHelperConstants.helperVersion
@@ -322,6 +332,7 @@ final class AppState {
   private func applyPreset(
     mode: ActiveFanControlMode,
     curveStage: FanCurveStage? = nil,
+    curveTargetPercent: Int? = nil,
     request: (@escaping @Sendable (Result<PresetControlStatus, Error>) -> Void) -> Void
   ) {
     guard let snapshot,
@@ -349,14 +360,19 @@ final class AppState {
             self.automaticControlStatus = nil
             self.activeControlMode = mode
             if let curveStage { self.fanCurveStage = curveStage }
+            if let curveTargetPercent { self.fanCurveTargetPercent = curveTargetPercent }
             self.startLeaseHeartbeat()
           } else {
-            if mode == .curve { self.deactivateFanCurve() }
+            if mode == .curve {
+              self.fanCurveDecisionState.reset()
+              self.deactivateFanCurve()
+            }
             self.activeControlMode = .automatic
             self.stopLeaseHeartbeat()
           }
         case .failure(let error):
           if mode == .curve {
+            self.fanCurveDecisionState.reset()
             self.deactivateFanCurve()
             self.activeControlMode = .automatic
             self.stopLeaseHeartbeat()
@@ -547,6 +563,7 @@ final class AppState {
       lastSuccessfulUpdate = updated.capturedAt
       errorMessage = nil
       isLoading = false
+      appendHistory(from: updated)
       evaluateFanCurve(using: updated)
       logger.debug(
         "Updated read-only snapshot: fans=\(updated.fans.count, privacy: .public) sensors=\(updated.sensors.count, privacy: .public)"
@@ -597,13 +614,16 @@ final class AppState {
     guard let snapshot,
       snapshot.fans.count == 2,
       snapshot.fans.allSatisfy({ canControlFan($0.id) }),
-      FanCurvePolicy.controlTemperature(for: snapshot) != nil,
+      CustomFanCurvePolicy.controlTemperature(
+        for: snapshot, source: fanCurveConfiguration.sensorSource) != nil,
       !isRestoringAutomaticControl,
       !isApplyingPreset,
       fansApplyingControl.isEmpty
     else { return }
     isFanCurveEnabled = true
     fanCurveStage = .automatic
+    fanCurveTargetPercent = nil
+    fanCurveDecisionState.reset()
     presetControlStatus = nil
     // The first curve stage atomically replaces any prior fixed/manual target.
     // The Helper preflights both fans and rolls back to Apple on failure, so the
@@ -621,6 +641,8 @@ final class AppState {
     isFanCurveEnabled = false
     fanCurveStage = .automatic
     fanCurveTemperature = nil
+    fanCurveTargetPercent = nil
+    fanCurveDecisionState.reset()
   }
 
   private func evaluateFanCurve(using snapshot: HardwareSnapshot) {
@@ -631,35 +653,63 @@ final class AppState {
       fansApplyingControl.isEmpty
     else { return }
 
-    guard let temperature = FanCurvePolicy.controlTemperature(for: snapshot) else {
+    guard let temperature = CustomFanCurvePolicy.controlTemperature(
+      for: snapshot, source: fanCurveConfiguration.sensorSource)
+    else {
       deactivateFanCurve()
       restoreAutomaticControl(preservingCurve: false)
       return
     }
 
     fanCurveTemperature = temperature
-    let desiredStage = FanCurvePolicy.stage(for: temperature, previous: fanCurveStage)
-    guard desiredStage != fanCurveStage else { return }
+    guard let targetPercent = CustomFanCurvePolicy.nextTarget(
+      temperature: temperature,
+      configuration: fanCurveConfiguration,
+      state: &fanCurveDecisionState,
+      now: Date())
+    else { return }
 
-    switch desiredStage {
-    case .automatic:
-      return
-    case .quiet:
-      applyPreset(mode: .curve, curveStage: .quiet) { [helperClient] completion in
-        helperClient.applyQuietPreset(completion: completion)
-      }
-    case .balanced:
-      applyPreset(mode: .curve, curveStage: .balanced) { [helperClient] completion in
-        helperClient.applyBalancedPreset(completion: completion)
-      }
-    case .cool:
-      applyPreset(mode: .curve, curveStage: .cool) { [helperClient] completion in
-        helperClient.applyCoolPreset(completion: completion)
-      }
-    case .max:
-      applyPreset(mode: .curve, curveStage: .max) { [helperClient] completion in
-        helperClient.applyMaxPreset(completion: completion)
-      }
+    applyPreset(
+      mode: .curve,
+      curveStage: curveStage(for: targetPercent),
+      curveTargetPercent: targetPercent
+    ) { [helperClient] completion in
+      helperClient.applyCurveTarget(percent: targetPercent, completion: completion)
+    }
+  }
+
+  func saveFanCurveConfiguration(_ configuration: FanCurveConfiguration) -> Bool {
+    guard !isFanCurveEnabled, configuration.isValid,
+      curveConfigurationStore.save(configuration)
+    else { return false }
+    fanCurveConfiguration = configuration
+    fanCurveDecisionState.reset()
+    return true
+  }
+
+  func resetFanCurveConfiguration() {
+    guard !isFanCurveEnabled else { return }
+    _ = saveFanCurveConfiguration(.default)
+  }
+
+  private func curveStage(for percent: Int) -> FanCurveStage {
+    switch percent {
+    case ...30: .quiet
+    case ...50: .balanced
+    case ...80: .cool
+    default: .max
+    }
+  }
+
+  private func appendHistory(from snapshot: HardwareSnapshot) {
+    thermalHistory.append(
+      ThermalHistorySample(
+        id: snapshot.capturedAt,
+        cpuTemperature: snapshot.hottestTemperature(in: .cpu)?.temperature,
+        gpuTemperature: snapshot.hottestTemperature(in: .gpu)?.temperature,
+        fanRPMs: snapshot.fans.map(\.currentRPM)))
+    if thermalHistory.count > 300 {
+      thermalHistory.removeFirst(thermalHistory.count - 300)
     }
   }
 }
@@ -773,6 +823,23 @@ private struct PreviewHelperClient: HelperCommunicating {
           actualRPMs: [5_779, 6_241],
           didRestoreAutomatic: false,
           message: "Max preset reached and verified on both fans."
+        )))
+  }
+
+  func applyCurveTarget(
+    percent: Int,
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    let fan0 = 1_200 + Int((5_779 - 1_200) * percent / 100)
+    let fan1 = 1_200 + Int((6_241 - 1_200) * percent / 100)
+    completion(
+      .success(
+        .init(
+          success: true,
+          targetRPMs: [fan0, fan1],
+          actualRPMs: [fan0, fan1],
+          didRestoreAutomatic: false,
+          message: "Curve target verified on both fans."
         )))
   }
 

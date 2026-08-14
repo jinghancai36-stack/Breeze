@@ -251,6 +251,11 @@ struct MenuBarView: View {
         )
         .font(.caption)
         .foregroundStyle(.green)
+        if let percent = state.fanCurveTargetPercent {
+          Text(L10n.format("curve.targetValue", fallback: "Interpolated target · %d%%", percent))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
       }
     }
   }

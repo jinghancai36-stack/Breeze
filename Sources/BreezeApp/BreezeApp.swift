@@ -161,6 +161,38 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
           Self.finish("Automatic fan request failed: \(error.localizedDescription)", success: false)
         }
       }
+    case "--helper-curve":
+      guard let commandIndex = arguments.firstIndex(of: command),
+        arguments.indices.contains(commandIndex + 1),
+        let percent = Int(arguments[commandIndex + 1])
+      else {
+        finish("Usage: --helper-curve <20...100, step 5>", success: false)
+        return
+      }
+      let client = HelperClient()
+      client.probe { result in
+        switch result {
+        case .success(let version) where version == BreezeHelperConstants.helperVersion:
+          client.applyCurveTarget(percent: percent) { result in
+            switch result {
+            case .success(let status):
+              let targets = status.targetRPMs.map(String.init).joined(separator: ",")
+              let actuals = status.actualRPMs.map(String.init).joined(separator: ",")
+              Self.finish(
+                "\(status.message) targets=[\(targets)] actual=[\(actuals)] restored=\(status.didRestoreAutomatic)",
+                success: status.success)
+            case .failure(let error):
+              Self.finish("Curve target failed: \(error.localizedDescription)", success: false)
+            }
+          }
+        case .success(let version):
+          Self.finish(
+            "Curve target refused: app requires Helper v\(BreezeHelperConstants.helperVersion), found v\(version).",
+            success: false)
+        case .failure(let error):
+          Self.finish("Curve target refused: \(error.localizedDescription)", success: false)
+        }
+      }
     case "--helper-quiet":
       let client = HelperClient()
       client.probe { result in

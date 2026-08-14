@@ -37,6 +37,27 @@ struct PresetFanControllerTests {
     #expect(hardware.values[.fan1Mode] == 1)
   }
 
+  @Test("Custom curve percentages are bounded, quantized, and applied atomically")
+  func appliesCurvePercentage() throws {
+    #expect(try FanPresetPolicy.targetRPM(
+      for: .curve(percent: 45), minimum: 1_200, maximum: 5_779) == 3_250)
+    #expect(throws: ManualFanError.self) {
+      try FanPresetPolicy.targetRPM(
+        for: .curve(percent: 19), minimum: 1_200, maximum: 5_779)
+    }
+    #expect(throws: ManualFanError.self) {
+      try FanPresetPolicy.targetRPM(
+        for: .curve(percent: 43), minimum: 1_200, maximum: 5_779)
+    }
+
+    let hardware = makeHardware()
+    let report = makeController(hardware).apply(.curve(percent: 45))
+    #expect(report.success)
+    #expect(report.targetRPMs == [3_250, 3_450])
+    #expect(hardware.values[.fan0Mode] == 1)
+    #expect(hardware.values[.fan1Mode] == 1)
+  }
+
   @Test("Max uses each fan's verified maximum without exceeding its bounds")
   func appliesMax() {
     let hardware = makeHardware()

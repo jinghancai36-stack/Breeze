@@ -90,6 +90,22 @@ struct DashboardView: View {
           }
 
           DashboardCard(
+            title: L10n.text("dashboard.thermalHistory", fallback: "Thermal History"),
+            systemImage: "chart.line.uptrend.xyaxis"
+          ) {
+            if state.thermalHistory.count >= 2 {
+              ThermalHistoryChart(samples: state.thermalHistory)
+            } else {
+              Text(
+                L10n.text(
+                  "dashboard.historyCollecting",
+                  fallback: "Collecting temperature history…"))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 100)
+            }
+          }
+
+          DashboardCard(
             title: L10n.text("hardware.fans", fallback: "Fans"), systemImage: "fan"
           ) {
             if snapshot.fans.isEmpty {
@@ -166,6 +182,11 @@ struct DashboardView: View {
               L10n.text("curve.controlTemperature", fallback: "Control temperature"),
               value: "\(temperature.formatted(.number.precision(.fractionLength(1)))) °C")
           }
+          if let percent = state.fanCurveTargetPercent {
+            LabeledContent(
+              L10n.text("curve.target", fallback: "Fan target"),
+              value: "\(percent)%")
+          }
           HStack {
             Button(
               state.isFanCurveEnabled
@@ -215,36 +236,10 @@ struct DashboardView: View {
             "dashboard.curvesSubtitle", fallback: "Automatic stages and response behavior"))
 
         DashboardCard(
-          title: L10n.text("curve.thresholds", fallback: "Fixed Safety Stages"),
-          systemImage: "chart.xyaxis.line"
-        ) {
-          curveRow("< 60 °C", mode: L10n.text("mode.quiet", fallback: "Quiet · 20%"))
-          curveRow("≥ 60 °C", mode: L10n.text("mode.balanced", fallback: "Balanced"))
-          curveRow("≥ 75 °C", mode: L10n.text("mode.cool", fallback: "Cool"))
-          curveRow("≥ 88 °C", mode: L10n.text("mode.max", fallback: "Max"))
-          Divider()
-          Text(
-            L10n.text(
-              "curve.hysteresis",
-              fallback:
-                "Hysteresis prevents rapid switching: Max releases below 82 °C, Cool below 68 °C, and Balanced returns to Quiet at 52 °C."
-            )
-          )
-          .font(.callout)
-          .foregroundStyle(.secondary)
-        }
-
-        DashboardCard(
           title: L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor"),
           systemImage: "slider.horizontal.3"
         ) {
-          Label(
-            L10n.text(
-              "dashboard.curveEditorPlanned",
-              fallback: "Planned for the provider-based cooling engine"),
-            systemImage: "hammer"
-          )
-          .foregroundStyle(.secondary)
+          CurveEditorView(state: state)
         }
       }
       .padding(28)

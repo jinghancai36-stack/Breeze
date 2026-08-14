@@ -40,6 +40,8 @@
 		A00000000000000000000020 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001F /* Localizable.xcstrings */; };
 		A00000000000000000000021 /* Breeze.icns in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* Breeze.icns */; };
 		A00000000000000000000022 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* DashboardView.swift */; };
+		A00000000000000000000023 /* CurveConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000023 /* CurveConfiguration.swift */; };
+		A00000000000000000000024 /* CurveEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000024 /* CurveEditorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +110,8 @@
 		B00000000000000000000020 /* Breeze.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Breeze.icns; sourceTree = "<group>"; };
 		B00000000000000000000021 /* BreezeIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BreezeIcon.png; sourceTree = "<group>"; };
 		B00000000000000000000022 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		B00000000000000000000023 /* CurveConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurveConfiguration.swift; sourceTree = "<group>"; };
+		B00000000000000000000024 /* CurveEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurveEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +164,8 @@
 				B0000000000000000000001D /* FanCurvePolicy.swift */,
 				B0000000000000000000001E /* Localization.swift */,
 				B00000000000000000000022 /* DashboardView.swift */,
+				B00000000000000000000023 /* CurveConfiguration.swift */,
+				B00000000000000000000024 /* CurveEditorView.swift */,
 			);
 			path = BreezeApp;
 			sourceTree = "<group>";
@@ -292,6 +298,8 @@
 				A0000000000000000000001E /* FanCurvePolicy.swift in Sources */,
 				A0000000000000000000001F /* Localization.swift in Sources */,
 				A00000000000000000000022 /* DashboardView.swift in Sources */,
+				A00000000000000000000023 /* CurveConfiguration.swift in Sources */,
+				A00000000000000000000024 /* CurveEditorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,14 +319,14 @@
 				ARCHS = arm64;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Breeze-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -332,14 +340,14 @@
 				ARCHS = arm64;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Breeze-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -347,8 +355,8 @@
 			};
 			name = Release;
 		};
-		I00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 14; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.9.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Debug; };
-		I00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 14; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.9.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Release; };
+		I00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 15; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.10.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Debug; };
+		I00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 15; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.10.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */

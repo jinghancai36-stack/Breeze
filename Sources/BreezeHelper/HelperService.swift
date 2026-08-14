@@ -157,6 +157,13 @@ final class HelperService: NSObject, BreezeHelperProtocol {
     applyPreset(.max, reply: reply)
   }
 
+  func applyCurveTarget(
+    _ percent: Int,
+    withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
+  ) {
+    applyPreset(.curve(percent: percent), reply: reply)
+  }
+
   private func applyPreset(
     _ preset: FanPreset,
     reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void

@@ -12,11 +12,14 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 - A native macOS application icon with a cool-blue five-blade fan mark.
 - An on-demand Breeze dashboard window with Overview, Cooling, Curves, and Providers sections.
 - A bounded Quiet curve stage at 20% of each detected fan range.
+- A persistent four-point custom curve editor with selectable CPU/GPU source, interpolation preview, decrease hysteresis, and delay.
+- In-memory CPU/GPU temperature and per-fan RPM history charts in the Breeze window.
 
 ### Safety
 
 - While enabled, the curve keeps Quiet, Balanced, Cool, and Max under one continuous Helper watchdog lease instead of handing low temperatures back to Apple.
 - Curve disable, app quit, sleep, missing temperature data, Helper failure, and watchdog loss still restore Apple Automatic.
+- Custom targets are restricted to 20%–100% in 5% steps; the Helper independently converts them to verified per-fan RPM ranges as one transaction.
 
 ### Planned
 

@@ -105,6 +105,7 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
   private(set) var quietPresetCount = 0
   private(set) var coolPresetCount = 0
   private(set) var maxPresetCount = 0
+  private(set) var curveTargetPercents: [Int] = []
   private let deferRenewal: Bool
   private var pendingRenewal:
     (@Sendable (Result<ControlLeaseStatus, Error>) -> Void)?
@@ -239,6 +240,20 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
     maxPresetCount += 1
     completion(maxPresetResult)
   }
+
+  func applyCurveTarget(
+    percent: Int,
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    curveTargetPercents.append(percent)
+    let fan0 = 1_200 + Int(Double(5_779 - 1_200) * Double(percent) / 100)
+    let fan1 = 1_200 + Int(Double(6_241 - 1_200) * Double(percent) / 100)
+    completion(
+      .success(
+        .init(
+          success: true, targetRPMs: [fan0, fan1], actualRPMs: [fan0, fan1],
+          didRestoreAutomatic: false, message: "Curve \(percent)%")))
+  }
 }
 
 @Suite("App state")
@@ -254,6 +269,7 @@ struct AppStateTests {
     #expect(state.snapshot?.fans.count == 2)
     #expect(state.snapshot?.primaryTemperature?.temperature == 60)
     #expect(state.lastSuccessfulUpdate != nil)
+    #expect(state.thermalHistory.count == 1)
     #expect(state.errorMessage == nil)
     #expect(monitor.readCount == 1)
   }
@@ -356,7 +372,7 @@ struct AppStateTests {
     #expect(client.restoreCount == 1)
   }
 
-  @Test("Automatic curve applies a fixed safe stage and disabling restores Automatic")
+  @Test("Automatic curve applies a bounded target and disabling restores Automatic")
   func fanCurveLifecycle() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
@@ -372,14 +388,15 @@ struct AppStateTests {
       try await Task.sleep(for: .milliseconds(10))
     }
     state.enableFanCurve()
-    for _ in 0..<50 where client.coolPresetCount == 0 || client.renewalCount == 0 {
+    for _ in 0..<50 where client.curveTargetPercents.isEmpty || client.renewalCount == 0 {
       try await Task.sleep(for: .milliseconds(10))
     }
 
     #expect(state.isFanCurveEnabled)
     #expect(state.fanCurveStage == .cool)
     #expect(state.activeControlMode == .curve)
-    #expect(client.coolPresetCount == 1)
+    #expect(client.curveTargetPercents == [65])
+    #expect(state.fanCurveTargetPercent == 65)
     #expect(client.restoreCount == 0)
     #expect(state.controlLeaseStatus?.isActive == true)
 
@@ -394,7 +411,7 @@ struct AppStateTests {
     #expect(client.restoreCount == 1)
   }
 
-  @Test("Automatic curve keeps Quiet under the watchdog and can re-enter it")
+  @Test("Automatic curve keeps a low-temperature custom target under the watchdog")
   func fanCurveQuietOwnership() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
@@ -415,7 +432,7 @@ struct AppStateTests {
     }
     #expect(state.isFanCurveEnabled)
     #expect(state.activeControlMode == .curve)
-    #expect(client.quietPresetCount == 1)
+    #expect(client.curveTargetPercents == [30])
     #expect(client.restoreCount == 0)
     #expect(state.controlLeaseStatus?.isActive == true)
 
@@ -424,14 +441,7 @@ struct AppStateTests {
     for _ in 0..<50 where state.fanCurveStage != .balanced {
       try await Task.sleep(for: .milliseconds(10))
     }
-    #expect(client.presetCount == 1)
-
-    monitor.setTemperature(51)
-    await state.refreshForTesting()
-    for _ in 0..<50 where state.fanCurveStage != .quiet || client.quietPresetCount < 2 {
-      try await Task.sleep(for: .milliseconds(10))
-    }
-    #expect(client.quietPresetCount == 2)
+    #expect(client.curveTargetPercents == [30, 35])
     #expect(client.restoreCount == 0)
     #expect(state.isFanCurveEnabled)
 

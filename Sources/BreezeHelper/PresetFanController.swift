@@ -1,10 +1,11 @@
 import Foundation
 
-enum FanPreset: String, Equatable, Sendable {
+enum FanPreset: Equatable, Sendable {
   case quiet
   case balanced
   case cool
   case max
+  case curve(percent: Int)
 
   var rangeFraction: Float {
     switch self {
@@ -12,6 +13,7 @@ enum FanPreset: String, Equatable, Sendable {
     case .balanced: 0.35
     case .cool: 0.60
     case .max: 1.00
+    case .curve(let percent): Float(percent) / 100
     }
   }
 
@@ -21,6 +23,14 @@ enum FanPreset: String, Equatable, Sendable {
     case .balanced: "Balanced"
     case .cool: "Cool"
     case .max: "Max"
+    case .curve(let percent): "Curve \(percent)%"
+    }
+  }
+
+  var isValid: Bool {
+    switch self {
+    case .quiet, .balanced, .cool, .max: true
+    case .curve(let percent): (20...100).contains(percent) && percent.isMultiple(of: 5)
     }
   }
 }
@@ -33,7 +43,8 @@ enum FanPresetPolicy {
     minimum: Float,
     maximum: Float
   ) throws -> Int {
-    guard minimum.isFinite, maximum.isFinite,
+    guard preset.isValid,
+      minimum.isFinite, maximum.isFinite,
       minimum >= 1_000, maximum <= 7_000, minimum < maximum
     else {
       throw ManualFanError.untrustedBounds(minimum: minimum, maximum: maximum)

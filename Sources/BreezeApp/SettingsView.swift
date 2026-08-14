@@ -50,7 +50,7 @@ struct SettingsView: View {
             || !state.fansApplyingControl.isEmpty)
 
         LabeledContent(L10n.text("curve.sensor", fallback: "Control sensor")) {
-          Text(L10n.text("curve.sensorValue", fallback: "Higher of CPU and GPU"))
+          Text(curveSensorTitle)
         }
         LabeledContent(L10n.text("curve.currentStage", fallback: "Current stage")) {
           Text(curveStageTitle)
@@ -61,23 +61,28 @@ struct SettingsView: View {
               .monospacedDigit()
           }
         }
+        if let percent = state.fanCurveTargetPercent {
+          LabeledContent(L10n.text("curve.target", fallback: "Fan target")) {
+            Text("\(percent)%").monospacedDigit()
+          }
+        }
       }
 
       Section {
-        curveThresholdRow(
-          stage: L10n.text("mode.quiet", fallback: "Quiet"),
-          range: "< 60 °C")
-        curveThresholdRow(stage: L10n.text("mode.balanced", fallback: "Balanced"), range: "≥ 60 °C")
-        curveThresholdRow(stage: L10n.text("mode.cool", fallback: "Cool"), range: "≥ 75 °C")
-        curveThresholdRow(stage: L10n.text("mode.max", fallback: "Max"), range: "≥ 88 °C")
+        ForEach(Array(state.fanCurveConfiguration.points.enumerated()), id: \.element.id) {
+          index, point in
+          curveThresholdRow(
+            stage: L10n.format("curve.pointNumber", fallback: "Point %d", index + 1),
+            range: "\(point.temperature) °C · \(point.fanPercent)%")
+        }
       } header: {
-        Text(L10n.text("curve.thresholds", fallback: "Fixed Safety Stages"))
+        Text(L10n.text("curve.thresholds", fallback: "Saved Curve Points"))
       } footer: {
         Text(
           L10n.text(
             "curve.hysteresis",
             fallback:
-              "Hysteresis prevents rapid switching: Max releases below 82 °C, Cool below 68 °C, and Balanced returns to Quiet at 52 °C."
+              "Rising targets apply immediately. Decreases use the saved hysteresis and delay to prevent rapid switching. Edit the curve in the Breeze window."
           ))
       }
 
@@ -86,7 +91,7 @@ struct SettingsView: View {
           L10n.text(
             "curve.safetyBody",
             fallback:
-              "While enabled, the curve keeps all four stages under Breeze's watchdog. It starts disabled after every launch and wake, and any Helper or watchdog failure returns control to Apple."
+              "While enabled, every interpolated curve target remains under Breeze's watchdog. The curve starts disabled after every launch and wake, and any Helper or watchdog failure returns control to Apple."
           )
         )
         .font(.caption)
@@ -109,6 +114,14 @@ struct SettingsView: View {
     case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
     case .cool: L10n.text("mode.cool", fallback: "Cool")
     case .max: L10n.text("mode.max", fallback: "Max")
+    }
+  }
+
+  private var curveSensorTitle: String {
+    switch state.fanCurveConfiguration.sensorSource {
+    case .cpuGPUPeak: L10n.text("curve.sensorPeak", fallback: "CPU/GPU Peak")
+    case .cpu: L10n.text("temperature.cpu", fallback: "CPU")
+    case .gpu: L10n.text("temperature.gpu", fallback: "GPU")
     }
   }
 
@@ -300,7 +313,7 @@ struct SettingsView: View {
           L10n.text(
             "helper.safetyFooter",
             fallback:
-              "Breeze permits only verified fan 0/1 control and the fixed Quiet, Balanced, Cool, and Max presets on MacBookPro18,3. Each preset is calculated independently from every fan's detected min/max range. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
+              "Breeze permits only verified fan 0/1 control, fixed presets, and curve targets from 20% to 100% in 5% steps on MacBookPro18,3. Every target is calculated independently from each fan's detected min/max range. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
           )
         )
       }

@@ -235,6 +235,45 @@ struct HelperXPCTests {
     #expect((try await leaseStatus(client)).isActive)
   }
 
+  @Test("A bounded custom curve target crosses XPC and arms a lease")
+  func curveTargetTransport() async throws {
+    let hardware = TestAutomaticHardware()
+    hardware.values.removeValue(forKey: .forceTest)
+    let gate = ControlOperationGate()
+    let watchdog = ControlLeaseWatchdog(
+      operationGate: gate,
+      restore: { AutomaticControlRestorer(hardware: hardware, pause: {}).restore() },
+      startsTimer: false)
+    let service = HelperService(
+      restorerFactory: { AutomaticControlRestorer(hardware: hardware, pause: {}) },
+      presetControllerFactory: {
+        PresetFanController(hardware: hardware, makeManualController: {
+          ManualFanController(
+            hardware: hardware,
+            settleAfterManualMode: {}, pauseBeforeTargetRetry: {}, pause: {})
+        })
+      },
+      operationGate: gate,
+      watchdog: watchdog)
+    let listener = NSXPCListener.anonymous()
+    let delegate = HelperListenerDelegate(
+      service: service, clientSigningRequirement: nil, expectedClientExecutableURL: nil)
+    listener.delegate = delegate
+    listener.resume()
+    defer { listener.invalidate() }
+
+    let client = HelperClient(
+      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+    let curve = try await applyCurve(client, percent: 45)
+
+    #expect(curve.success)
+    #expect(curve.targetRPMs == [3_250, 3_450])
+    #expect((try await leaseStatus(client)).isActive)
+
+    let rejected = try await applyCurve(client, percent: 43)
+    #expect(!rejected.success)
+  }
+
   @Test("Cool dynamically controls both fans and arms a lease over XPC")
   func coolPresetTransport() async throws {
     let hardware = TestAutomaticHardware()
@@ -412,6 +451,14 @@ struct HelperXPCTests {
   private func applyQuiet(_ client: HelperClient) async throws -> PresetControlStatus {
     try await withCheckedThrowingContinuation { continuation in
       client.applyQuietPreset { result in continuation.resume(with: result) }
+    }
+  }
+
+  private func applyCurve(
+    _ client: HelperClient, percent: Int
+  ) async throws -> PresetControlStatus {
+    try await withCheckedThrowingContinuation { continuation in
+      client.applyCurveTarget(percent: percent) { result in continuation.resume(with: result) }
     }
   }
 

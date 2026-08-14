@@ -182,6 +182,15 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - Explicit disable and every safety exit still restore Apple Automatic
 - Automated and supported-hardware results are recorded in [Milestone 11 Validation](docs/VALIDATION_M11.md)
 
+### Milestone 12 — Custom curves and history
+
+- Persistent four-point temperature-to-fan curve edited in the standalone Breeze window
+- CPU/GPU Peak, CPU-only, and GPU-only control sources
+- Linear interpolation quantized to bounded 5% targets, with immediate increases and configurable decrease hysteresis/delay
+- The Helper accepts only 20%–100% curve targets and independently converts them to each fan's verified RPM range as one atomic transaction
+- In-memory CPU/GPU temperature and per-fan RPM charts retain the latest 300 monitoring samples
+- Developer diagnostic: `--helper-curve <20...100, step 5>`
+
 ## Safety
 
 Breeze uses undocumented/private hardware interfaces. Availability varies between Mac models and macOS versions. The helper runs as root only after explicit macOS approval. Manual control is restricted to a per-model and per-fan whitelist and never bypasses detected RPM bounds. A Helper-owned lease restores Automatic when the controlling GUI disappears; explicit Automatic and Quit remain the preferred release paths.

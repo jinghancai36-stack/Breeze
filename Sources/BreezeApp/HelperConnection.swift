@@ -147,6 +147,9 @@ protocol PresetServicing: Sendable {
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
   func applyMaxPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
+  func applyCurveTarget(
+    percent: Int,
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
 }
 
 private enum PresetRequest {
@@ -154,6 +157,7 @@ private enum PresetRequest {
   case balanced
   case cool
   case max
+  case curve(percent: Int)
 }
 
 protocol HelperCommunicating:
@@ -238,6 +242,13 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     performPresetRequest(.max, completion: completion)
   }
 
+  func applyCurveTarget(
+    percent: Int,
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    performPresetRequest(.curve(percent: percent), completion: completion)
+  }
+
   private func performPresetRequest(
     _ request: PresetRequest,
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
@@ -289,6 +300,8 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
       proxy.applyCoolPreset(withReply: reply)
     case .max:
       proxy.applyMaxPreset(withReply: reply)
+    case .curve(let percent):
+      proxy.applyCurveTarget(percent, withReply: reply)
     }
   }
 
