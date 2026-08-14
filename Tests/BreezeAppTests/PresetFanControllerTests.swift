@@ -7,6 +7,10 @@ struct PresetFanControllerTests {
   @Test("Balanced targets are calculated independently from each fan range")
   func dynamicTargets() throws {
     #expect(try FanPresetPolicy.targetRPM(
+      for: .quiet, minimum: 1_200, maximum: 5_779) == 2_100)
+    #expect(try FanPresetPolicy.targetRPM(
+      for: .quiet, minimum: 1_200, maximum: 6_241) == 2_200)
+    #expect(try FanPresetPolicy.targetRPM(
       for: .balanced, minimum: 1_200, maximum: 5_779) == 2_800)
     #expect(try FanPresetPolicy.targetRPM(
       for: .balanced, minimum: 1_200, maximum: 6_241) == 2_950)
@@ -18,6 +22,19 @@ struct PresetFanControllerTests {
       for: .max, minimum: 1_200, maximum: 5_779) == 5_779)
     #expect(try FanPresetPolicy.targetRPM(
       for: .max, minimum: 1_200, maximum: 6_241) == 6_241)
+  }
+
+  @Test("Quiet applies a bounded low-noise target to both fans")
+  func appliesQuiet() {
+    let hardware = makeHardware()
+
+    let report = makeController(hardware).apply(.quiet)
+
+    #expect(report.success)
+    #expect(report.targetRPMs == [2_100, 2_200])
+    #expect(report.actualRPMs == [2_100, 2_200])
+    #expect(hardware.values[.fan0Mode] == 1)
+    #expect(hardware.values[.fan1Mode] == 1)
   }
 
   @Test("Max uses each fan's verified maximum without exceeding its bounds")

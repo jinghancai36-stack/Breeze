@@ -198,6 +198,43 @@ struct HelperXPCTests {
     #expect((try await leaseStatus(client)).isActive)
   }
 
+  @Test("Quiet dynamically controls both fans and arms a lease over XPC")
+  func quietPresetTransport() async throws {
+    let hardware = TestAutomaticHardware()
+    hardware.values.removeValue(forKey: .forceTest)
+    let gate = ControlOperationGate()
+    let watchdog = ControlLeaseWatchdog(
+      operationGate: gate,
+      restore: { AutomaticControlRestorer(hardware: hardware, pause: {}).restore() },
+      startsTimer: false)
+    let service = HelperService(
+      restorerFactory: { AutomaticControlRestorer(hardware: hardware, pause: {}) },
+      presetControllerFactory: {
+        PresetFanController(hardware: hardware, makeManualController: {
+          ManualFanController(
+            hardware: hardware,
+            settleAfterManualMode: {}, pauseBeforeTargetRetry: {}, pause: {})
+        })
+      },
+      operationGate: gate,
+      watchdog: watchdog)
+    let listener = NSXPCListener.anonymous()
+    let delegate = HelperListenerDelegate(
+      service: service, clientSigningRequirement: nil, expectedClientExecutableURL: nil)
+    listener.delegate = delegate
+    listener.resume()
+    defer { listener.invalidate() }
+
+    let client = HelperClient(
+      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+    let quiet = try await applyQuiet(client)
+
+    #expect(quiet.success)
+    #expect(quiet.targetRPMs == [2_100, 2_200])
+    #expect(quiet.actualRPMs == [2_100, 2_200])
+    #expect((try await leaseStatus(client)).isActive)
+  }
+
   @Test("Cool dynamically controls both fans and arms a lease over XPC")
   func coolPresetTransport() async throws {
     let hardware = TestAutomaticHardware()
@@ -369,6 +406,12 @@ struct HelperXPCTests {
   private func applyBalanced(_ client: HelperClient) async throws -> PresetControlStatus {
     try await withCheckedThrowingContinuation { continuation in
       client.applyBalancedPreset { result in continuation.resume(with: result) }
+    }
+  }
+
+  private func applyQuiet(_ client: HelperClient) async throws -> PresetControlStatus {
+    try await withCheckedThrowingContinuation { continuation in
+      client.applyQuietPreset { result in continuation.resume(with: result) }
     }
   }
 

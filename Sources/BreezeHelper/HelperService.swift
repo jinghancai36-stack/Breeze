@@ -139,6 +139,12 @@ final class HelperService: NSObject, BreezeHelperProtocol {
     applyPreset(.balanced, reply: reply)
   }
 
+  func applyQuietPreset(
+    withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
+  ) {
+    applyPreset(.quiet, reply: reply)
+  }
+
   func applyCoolPreset(
     withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void
   ) {

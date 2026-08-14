@@ -11,7 +11,7 @@ Breeze is a SwiftUI menu bar app that displays high-value temperatures and fan R
 
 - Native macOS menu bar UI with Light and Dark Mode support
 - CPU, GPU, memory, battery, and fan summaries where available
-- Automatic, Balanced, Cool, Max, and per-fan Manual controls
+- Automatic, Quiet curve, Balanced, Cool, Max, and per-fan Manual controls
 - Opt-in automatic curve driven by the higher CPU/GPU temperature, with fixed stages and hysteresis
 - Targets derived from each fan's detected minimum and maximum RPM
 - Root Helper with a narrow, typed XPC boundary and strict peer validation
@@ -165,12 +165,14 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 ### Milestone 10 — Automatic curve and localization
 
 - Opt-in automatic curve using the higher of the CPU and GPU temperature
-- Fixed entry stages: Balanced at 60 °C, Cool at 75 °C, and Max at 88 °C
-- Hysteresis releases Max below 82 °C, Cool below 68 °C, and Balanced at 52 °C
-- Enabling first establishes Apple Automatic as a known-safe baseline
+- Fixed stages: Quiet below 60 °C, Balanced at 60 °C, Cool at 75 °C, and Max at 88 °C
+- Quiet uses 20% of each fan's independently detected range and remains under the Helper watchdog
+- Hysteresis releases Max below 82 °C, Cool below 68 °C, and Balanced back to Quiet at 52 °C
+- Stage changes are atomic preset transactions and never hand low-temperature control back to Apple while the curve is enabled
 - The curve starts disabled after launch and wake, and disables itself after Helper or watchdog failure
 - English source interface and a Simplified Chinese String Catalog
 - The interface follows the language selected for Breeze in macOS
+- Developer diagnostic: `--helper-quiet`
 
 ## Safety
 

@@ -218,8 +218,7 @@ struct DashboardView: View {
           title: L10n.text("curve.thresholds", fallback: "Fixed Safety Stages"),
           systemImage: "chart.xyaxis.line"
         ) {
-          curveRow(
-            "< 60 °C", mode: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic"))
+          curveRow("< 60 °C", mode: L10n.text("mode.quiet", fallback: "Quiet · 20%"))
           curveRow("≥ 60 °C", mode: L10n.text("mode.balanced", fallback: "Balanced"))
           curveRow("≥ 75 °C", mode: L10n.text("mode.cool", fallback: "Cool"))
           curveRow("≥ 88 °C", mode: L10n.text("mode.max", fallback: "Max"))
@@ -228,7 +227,7 @@ struct DashboardView: View {
             L10n.text(
               "curve.hysteresis",
               fallback:
-                "Hysteresis prevents rapid switching: Max releases below 82 °C, Cool below 68 °C, and Balanced returns to Apple Automatic at 52 °C."
+                "Hysteresis prevents rapid switching: Max releases below 82 °C, Cool below 68 °C, and Balanced returns to Quiet at 52 °C."
             )
           )
           .font(.callout)

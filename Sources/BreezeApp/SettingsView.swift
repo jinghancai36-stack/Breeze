@@ -65,7 +65,7 @@ struct SettingsView: View {
 
       Section {
         curveThresholdRow(
-          stage: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic"),
+          stage: L10n.text("mode.quiet", fallback: "Quiet"),
           range: "< 60 °C")
         curveThresholdRow(stage: L10n.text("mode.balanced", fallback: "Balanced"), range: "≥ 60 °C")
         curveThresholdRow(stage: L10n.text("mode.cool", fallback: "Cool"), range: "≥ 75 °C")
@@ -77,7 +77,7 @@ struct SettingsView: View {
           L10n.text(
             "curve.hysteresis",
             fallback:
-              "Hysteresis prevents rapid switching: Max releases below 82 °C, Cool below 68 °C, and Balanced returns to Apple Automatic at 52 °C."
+              "Hysteresis prevents rapid switching: Max releases below 82 °C, Cool below 68 °C, and Balanced returns to Quiet at 52 °C."
           ))
       }
 
@@ -86,7 +86,7 @@ struct SettingsView: View {
           L10n.text(
             "curve.safetyBody",
             fallback:
-              "The curve uses only Breeze's verified fixed presets. It starts disabled after every launch and wake, and any Helper or watchdog failure returns control to Apple."
+              "While enabled, the curve keeps all four stages under Breeze's watchdog. It starts disabled after every launch and wake, and any Helper or watchdog failure returns control to Apple."
           )
         )
         .font(.caption)
@@ -105,6 +105,7 @@ struct SettingsView: View {
   private var curveStageTitle: String {
     switch state.fanCurveStage {
     case .automatic: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic")
+    case .quiet: L10n.text("mode.quiet", fallback: "Quiet")
     case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
     case .cool: L10n.text("mode.cool", fallback: "Cool")
     case .max: L10n.text("mode.max", fallback: "Max")
@@ -299,7 +300,7 @@ struct SettingsView: View {
           L10n.text(
             "helper.safetyFooter",
             fallback:
-              "Breeze permits only verified fan 0/1 control and the fixed Balanced, Cool, and Max presets on MacBookPro18,3. Each preset is calculated independently from every fan's detected min/max range. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
+              "Breeze permits only verified fan 0/1 control and the fixed Quiet, Balanced, Cool, and Max presets on MacBookPro18,3. Each preset is calculated independently from every fan's detected min/max range. A fixed Helper watchdog restores Automatic if heartbeats stop; arbitrary SMC operations and caller-controlled timeouts are not exposed."
           )
         )
       }

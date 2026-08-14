@@ -6,6 +6,7 @@ import Foundation
 
 enum FanCurveStage: Int, CaseIterable, Equatable, Sendable {
   case automatic
+  case quiet
   case balanced
   case cool
   case max
@@ -35,22 +36,27 @@ enum FanCurvePolicy {
       if temperature >= maxEntryTemperature { return .max }
       if temperature >= coolEntryTemperature { return .cool }
       if temperature >= balancedEntryTemperature { return .balanced }
-      return .automatic
+      return .quiet
+    case .quiet:
+      if temperature >= maxEntryTemperature { return .max }
+      if temperature >= coolEntryTemperature { return .cool }
+      if temperature >= balancedEntryTemperature { return .balanced }
+      return .quiet
     case .balanced:
       if temperature >= maxEntryTemperature { return .max }
       if temperature >= coolEntryTemperature { return .cool }
-      if temperature <= automaticReturnTemperature { return .automatic }
+      if temperature <= automaticReturnTemperature { return .quiet }
       return .balanced
     case .cool:
       if temperature >= maxEntryTemperature { return .max }
       if temperature < balancedReturnTemperature {
-        return temperature <= automaticReturnTemperature ? .automatic : .balanced
+        return temperature <= automaticReturnTemperature ? .quiet : .balanced
       }
       return .cool
     case .max:
       if temperature < coolReturnTemperature {
         if temperature < balancedReturnTemperature {
-          return temperature <= automaticReturnTemperature ? .automatic : .balanced
+          return temperature <= automaticReturnTemperature ? .quiet : .balanced
         }
         return .cool
       }

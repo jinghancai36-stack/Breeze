@@ -161,6 +161,31 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
           Self.finish("Automatic fan request failed: \(error.localizedDescription)", success: false)
         }
       }
+    case "--helper-quiet":
+      let client = HelperClient()
+      client.probe { result in
+        switch result {
+        case .success(let version) where version == BreezeHelperConstants.helperVersion:
+          client.applyQuietPreset { result in
+            switch result {
+            case .success(let status):
+              let targets = status.targetRPMs.map(String.init).joined(separator: ",")
+              let actuals = status.actualRPMs.map(String.init).joined(separator: ",")
+              Self.finish(
+                "\(status.message) targets=[\(targets)] actual=[\(actuals)] restored=\(status.didRestoreAutomatic)",
+                success: status.success)
+            case .failure(let error):
+              Self.finish("Quiet preset failed: \(error.localizedDescription)", success: false)
+            }
+          }
+        case .success(let version):
+          Self.finish(
+            "Quiet refused: app requires Helper v\(BreezeHelperConstants.helperVersion), found v\(version).",
+            success: false)
+        case .failure(let error):
+          Self.finish("Quiet refused: \(error.localizedDescription)", success: false)
+        }
+      }
     case "--helper-balanced":
       let client = HelperClient()
       client.probe { result in

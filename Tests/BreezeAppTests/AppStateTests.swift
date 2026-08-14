@@ -1,5 +1,6 @@
 import AppKit
 import BreezeHardware
+import BreezeIPC
 import Foundation
 import Testing
 
@@ -95,13 +96,18 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
   var automaticResult: Result<AutomaticControlStatus, Error>
   var leaseResult: Result<ControlLeaseStatus, Error>
   var presetResult: Result<PresetControlStatus, Error>
+  var quietPresetResult: Result<PresetControlStatus, Error>
   var coolPresetResult: Result<PresetControlStatus, Error>
   var maxPresetResult: Result<PresetControlStatus, Error>
   private(set) var restoreCount = 0
   private(set) var renewalCount = 0
   private(set) var presetCount = 0
+  private(set) var quietPresetCount = 0
   private(set) var coolPresetCount = 0
   private(set) var maxPresetCount = 0
+  private let deferRenewal: Bool
+  private var pendingRenewal:
+    (@Sendable (Result<ControlLeaseStatus, Error>) -> Void)?
 
   init(
     result: Result<String, Error>,
@@ -113,6 +119,10 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
       .init(
         success: true, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 2_950],
         didRestoreAutomatic: false, message: "Balanced")),
+    quietPresetResult: Result<PresetControlStatus, Error> = .success(
+      .init(
+        success: true, targetRPMs: [2_100, 2_200], actualRPMs: [2_100, 2_200],
+        didRestoreAutomatic: false, message: "Quiet")),
     coolPresetResult: Result<PresetControlStatus, Error> = .success(
       .init(
         success: true, targetRPMs: [3_950, 4_200], actualRPMs: [3_950, 4_200],
@@ -120,14 +130,17 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
     maxPresetResult: Result<PresetControlStatus, Error> = .success(
       .init(
         success: true, targetRPMs: [5_779, 6_241], actualRPMs: [5_779, 6_241],
-        didRestoreAutomatic: false, message: "Max"))
+        didRestoreAutomatic: false, message: "Max")),
+    deferRenewal: Bool = false
   ) {
     self.result = result
     self.automaticResult = automaticResult
     self.leaseResult = leaseResult
     self.presetResult = presetResult
+    self.quietPresetResult = quietPresetResult
     self.coolPresetResult = coolPresetResult
     self.maxPresetResult = maxPresetResult
+    self.deferRenewal = deferRenewal
   }
 
   func probe(completion: @escaping @Sendable (Result<String, Error>) -> Void) {
@@ -175,7 +188,19 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
     completion: @escaping @Sendable (Result<ControlLeaseStatus, Error>) -> Void
   ) {
     renewalCount += 1
-    completion(leaseResult)
+    if deferRenewal {
+      pendingRenewal = completion
+    } else {
+      completion(leaseResult)
+    }
+  }
+
+  func completePendingRenewal(
+    with result: Result<ControlLeaseStatus, Error>
+  ) {
+    let completion = pendingRenewal
+    pendingRenewal = nil
+    completion?(result)
   }
 
   func controlLeaseStatus(
@@ -192,6 +217,13 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
   ) {
     presetCount += 1
     completion(presetResult)
+  }
+
+  func applyQuietPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    quietPresetCount += 1
+    completion(quietPresetResult)
   }
 
   func applyCoolPreset(
@@ -282,7 +314,8 @@ struct AppStateTests {
     #expect(
       FanCurvePolicy.controlTemperature(
         for: HardwareSnapshot(hardware: snapshot.hardware, fans: [], sensors: [])) == nil)
-    #expect(FanCurvePolicy.stage(for: 59, previous: .automatic) == .automatic)
+    #expect(FanCurvePolicy.stage(for: 59, previous: .automatic) == .quiet)
+    #expect(FanCurvePolicy.stage(for: 59, previous: .quiet) == .quiet)
     #expect(FanCurvePolicy.stage(for: 60, previous: .automatic) == .balanced)
     #expect(FanCurvePolicy.stage(for: 74, previous: .balanced) == .balanced)
     #expect(FanCurvePolicy.stage(for: 75, previous: .balanced) == .cool)
@@ -290,14 +323,14 @@ struct AppStateTests {
     #expect(FanCurvePolicy.stage(for: 83, previous: .max) == .max)
     #expect(FanCurvePolicy.stage(for: 81, previous: .max) == .cool)
     #expect(FanCurvePolicy.stage(for: 67, previous: .cool) == .balanced)
-    #expect(FanCurvePolicy.stage(for: 51, previous: .balanced) == .automatic)
+    #expect(FanCurvePolicy.stage(for: 51, previous: .balanced) == .quiet)
   }
 
   @Test("Automatic curve restores Apple control if its temperature source disappears")
   func fanCurveMissingTemperature() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.8.0"))
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let monitor = StubMonitor(controlVerified: true, temperature: 76)
     let state = AppState(monitor: monitor, helperInstaller: installer, helperClient: client)
 
@@ -313,21 +346,21 @@ struct AppStateTests {
 
     monitor.setTemperature(nil)
     await state.refreshForTesting()
-    for _ in 0..<50 where client.restoreCount < 2 || state.isRestoringAutomaticControl {
+    for _ in 0..<50 where client.restoreCount < 1 || state.isRestoringAutomaticControl {
       try await Task.sleep(for: .milliseconds(10))
     }
 
     #expect(!state.isFanCurveEnabled)
     #expect(state.fanCurveStage == .automatic)
     #expect(state.activeControlMode == .automatic)
-    #expect(client.restoreCount == 2)
+    #expect(client.restoreCount == 1)
   }
 
   @Test("Automatic curve applies a fixed safe stage and disabling restores Automatic")
   func fanCurveLifecycle() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.8.0"))
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true, temperature: 76),
       helperInstaller: installer,
@@ -347,18 +380,100 @@ struct AppStateTests {
     #expect(state.fanCurveStage == .cool)
     #expect(state.activeControlMode == .curve)
     #expect(client.coolPresetCount == 1)
-    #expect(client.restoreCount == 1)
+    #expect(client.restoreCount == 0)
     #expect(state.controlLeaseStatus?.isActive == true)
 
     state.disableFanCurve()
-    for _ in 0..<50 where client.restoreCount < 2 || state.isRestoringAutomaticControl {
+    for _ in 0..<50 where client.restoreCount < 1 || state.isRestoringAutomaticControl {
       try await Task.sleep(for: .milliseconds(10))
     }
     #expect(!state.isFanCurveEnabled)
     #expect(state.fanCurveStage == .automatic)
     #expect(state.activeControlMode == .automatic)
     #expect(state.controlLeaseStatus == nil)
-    #expect(client.restoreCount == 2)
+    #expect(client.restoreCount == 1)
+  }
+
+  @Test("Automatic curve keeps Quiet under the watchdog and can re-enter it")
+  func fanCurveQuietOwnership() async throws {
+    let installer = StubHelperInstaller()
+    installer.currentStatus = .enabled
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
+    let monitor = StubMonitor(controlVerified: true, temperature: 55)
+    let state = AppState(
+      monitor: monitor, helperInstaller: installer, helperClient: client)
+
+    await state.refreshForTesting()
+    state.pingHelper()
+    for _ in 0..<50 where state.helperVersion == nil {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    state.enableFanCurve()
+    for _ in 0..<50 where state.fanCurveStage != .quiet || client.renewalCount == 0 {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(state.isFanCurveEnabled)
+    #expect(state.activeControlMode == .curve)
+    #expect(client.quietPresetCount == 1)
+    #expect(client.restoreCount == 0)
+    #expect(state.controlLeaseStatus?.isActive == true)
+
+    monitor.setTemperature(61)
+    await state.refreshForTesting()
+    for _ in 0..<50 where state.fanCurveStage != .balanced {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(client.presetCount == 1)
+
+    monitor.setTemperature(51)
+    await state.refreshForTesting()
+    for _ in 0..<50 where state.fanCurveStage != .quiet || client.quietPresetCount < 2 {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(client.quietPresetCount == 2)
+    #expect(client.restoreCount == 0)
+    #expect(state.isFanCurveEnabled)
+
+    state.disableFanCurve()
+  }
+
+  @Test("A stale heartbeat cannot cancel or corrupt an explicit curve restore")
+  func staleHeartbeatAfterCurveDisable() async throws {
+    let installer = StubHelperInstaller()
+    installer.currentStatus = .enabled
+    let client = StubHelperClient(
+      result: .success(BreezeHelperConstants.helperVersion), deferRenewal: true)
+    let state = AppState(
+      monitor: StubMonitor(controlVerified: true, temperature: 55),
+      helperInstaller: installer,
+      helperClient: client)
+
+    await state.refreshForTesting()
+    state.pingHelper()
+    for _ in 0..<50 where state.helperVersion == nil {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    state.enableFanCurve()
+    for _ in 0..<50 where client.renewalCount == 0 {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    state.disableFanCurve()
+    for _ in 0..<50 where state.isRestoringAutomaticControl {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    client.completePendingRenewal(
+      with: .success(
+        .init(isActive: false, remainingSeconds: 0, message: "Old lease is inactive.")))
+    await Task.yield()
+
+    #expect(!state.isFanCurveEnabled)
+    #expect(state.fanCurveStage == .automatic)
+    #expect(state.activeControlMode == .automatic)
+    #expect(state.helperErrorMessage == nil)
+    #expect(state.controlLeaseStatus == nil)
+    #expect(client.restoreCount == 1)
   }
 
   @Test("Sleep pauses polling and wake performs an immediate refresh")
@@ -391,7 +506,7 @@ struct AppStateTests {
   @Test("Helper registration and ping state stay in AppState")
   func helperState() async throws {
     let installer = StubHelperInstaller()
-    let helper = StubHelperClient(result: .success("0.8.0"))
+    let helper = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(),
       helperInstaller: installer,
@@ -407,7 +522,7 @@ struct AppStateTests {
     for _ in 0..<50 where state.helperVersion == nil {
       try await Task.sleep(for: .milliseconds(10))
     }
-    #expect(state.helperVersion == "0.8.0")
+    #expect(state.helperVersion == BreezeHelperConstants.helperVersion)
     #expect(state.helperErrorMessage == nil)
 
     state.uninstallHelper()
@@ -424,7 +539,7 @@ struct AppStateTests {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
     let helper = StubHelperClient(
-      result: .success("0.8.0"),
+      result: .success(BreezeHelperConstants.helperVersion),
       automaticResult: .success(
         .init(
           isAutomatic: false, fanModes: [1, 0], forceTest: nil,
@@ -450,7 +565,7 @@ struct AppStateTests {
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
-      helperClient: StubHelperClient(result: .success("0.8.0"))
+      helperClient: StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     )
 
     await state.refreshForTesting()
@@ -480,7 +595,7 @@ struct AppStateTests {
   func manualFanState() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.8.0"))
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
@@ -524,7 +639,7 @@ struct AppStateTests {
   func balancedState() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.8.0"))
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
@@ -558,7 +673,7 @@ struct AppStateTests {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
     let client = StubHelperClient(
-      result: .success("0.8.0"),
+      result: .success(BreezeHelperConstants.helperVersion),
       presetResult: .success(
         .init(
           success: false, targetRPMs: [2_800, 2_950], actualRPMs: [2_800, 0],
@@ -587,7 +702,7 @@ struct AppStateTests {
   func coolState() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.8.0"))
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
@@ -613,7 +728,7 @@ struct AppStateTests {
   func maxState() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.8.0"))
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
@@ -660,7 +775,7 @@ struct AppStateTests {
   func sleepSafety() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
-    let client = StubHelperClient(result: .success("0.8.0"))
+    let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
@@ -702,7 +817,7 @@ struct AppStateTests {
     let state = AppState(
       monitor: StubMonitor(),
       helperInstaller: installer,
-      helperClient: StubHelperClient(result: .success("0.8.0")),
+      helperClient: StubHelperClient(result: .success(BreezeHelperConstants.helperVersion)),
       terminateApp: { didTerminate = true }
     )
 
@@ -731,7 +846,7 @@ struct AppStateTests {
       monitor: StubMonitor(),
       helperInstaller: installer,
       helperClient: StubHelperClient(
-        result: .success("0.8.0"), automaticResult: .success(failedStatus)),
+        result: .success(BreezeHelperConstants.helperVersion), automaticResult: .success(failedStatus)),
       terminateApp: { didTerminate = true }
     )
 

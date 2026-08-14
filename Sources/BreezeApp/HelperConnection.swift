@@ -139,6 +139,8 @@ protocol WatchdogServicing: Sendable {
 }
 
 protocol PresetServicing: Sendable {
+  func applyQuietPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
   func applyBalancedPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void)
   func applyCoolPreset(
@@ -148,6 +150,7 @@ protocol PresetServicing: Sendable {
 }
 
 private enum PresetRequest {
+  case quiet
   case balanced
   case cool
   case max
@@ -217,6 +220,12 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     performPresetRequest(.balanced, completion: completion)
   }
 
+  func applyQuietPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    performPresetRequest(.quiet, completion: completion)
+  }
+
   func applyCoolPreset(
     completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
   ) {
@@ -272,6 +281,8 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
       )))
     }
     switch request {
+    case .quiet:
+      proxy.applyQuietPreset(withReply: reply)
     case .balanced:
       proxy.applyBalancedPreset(withReply: reply)
     case .cool:

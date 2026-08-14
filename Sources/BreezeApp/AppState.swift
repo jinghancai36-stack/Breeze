@@ -52,6 +52,7 @@ final class AppState {
   @ObservationIgnored private let terminateApp: @MainActor () -> Void
   @ObservationIgnored private var pollingTask: Task<Void, Never>?
   @ObservationIgnored private var leaseHeartbeatTask: Task<Void, Never>?
+  @ObservationIgnored private var controlRequestGeneration = 0
   @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
 
   init(
@@ -82,7 +83,7 @@ final class AppState {
     helperClient = PreviewHelperClient()
     terminateApp = {}
     helperStatus = .enabled
-    helperVersion = "0.8.0"
+    helperVersion = BreezeHelperConstants.helperVersion
     monitor = nil
     snapshot = previewSnapshot
     lastSuccessfulUpdate = previewSnapshot.capturedAt
@@ -149,6 +150,10 @@ final class AppState {
       unregisterHelperAfterAutomaticRestore()
       return
     }
+    controlRequestGeneration &+= 1
+    isApplyingPreset = false
+    deactivateFanCurve()
+    stopLeaseHeartbeat()
     isRestoringAutomaticControl = true
     helperClient.restoreAutomaticControl { [weak self] result in
       Task { @MainActor in
@@ -326,11 +331,14 @@ final class AppState {
       !isRestoringAutomaticControl,
       fansApplyingControl.isEmpty
     else { return }
+    controlRequestGeneration &+= 1
+    let requestGeneration = controlRequestGeneration
     isApplyingPreset = true
     helperErrorMessage = nil
     request { [weak self] result in
       Task { @MainActor in
         guard let self else { return }
+        guard requestGeneration == self.controlRequestGeneration else { return }
         self.isApplyingPreset = false
         switch result {
         case .success(let status):
@@ -342,7 +350,7 @@ final class AppState {
             self.activeControlMode = mode
             if let curveStage { self.fanCurveStage = curveStage }
             self.startLeaseHeartbeat()
-          } else if status.didRestoreAutomatic {
+          } else {
             if mode == .curve { self.deactivateFanCurve() }
             self.activeControlMode = .automatic
             self.stopLeaseHeartbeat()
@@ -388,6 +396,9 @@ final class AppState {
     completion: (@MainActor @Sendable () -> Void)? = nil
   ) {
     guard helperStatus == .enabled, !isRestoringAutomaticControl else { return }
+    controlRequestGeneration &+= 1
+    isApplyingPreset = false
+    stopLeaseHeartbeat()
     isRestoringAutomaticControl = true
     helperErrorMessage = nil
     helperClient.restoreAutomaticControl { [weak self] result in
@@ -424,6 +435,9 @@ final class AppState {
       terminateApp()
       return
     }
+    controlRequestGeneration &+= 1
+    isApplyingPreset = false
+    stopLeaseHeartbeat()
     isRestoringAutomaticControl = true
     helperErrorMessage = nil
     helperClient.restoreAutomaticControl { [weak self] result in
@@ -591,12 +605,10 @@ final class AppState {
     isFanCurveEnabled = true
     fanCurveStage = .automatic
     presetControlStatus = nil
-    // Establish a known-safe baseline before the curve takes ownership. This
-    // prevents enabling the curve while a prior manual or preset mode is active.
-    restoreAutomaticControl(preservingCurve: true) { [weak self] in
-      guard let self, self.isFanCurveEnabled, let snapshot = self.snapshot else { return }
-      self.evaluateFanCurve(using: snapshot)
-    }
+    // The first curve stage atomically replaces any prior fixed/manual target.
+    // The Helper preflights both fans and rolls back to Apple on failure, so the
+    // curve never creates an unleased Apple-Automatic gap while it is enabled.
+    evaluateFanCurve(using: snapshot)
   }
 
   func disableFanCurve() {
@@ -631,7 +643,11 @@ final class AppState {
 
     switch desiredStage {
     case .automatic:
-      restoreAutomaticControl(preservingCurve: true)
+      return
+    case .quiet:
+      applyPreset(mode: .curve, curveStage: .quiet) { [helperClient] completion in
+        helperClient.applyQuietPreset(completion: completion)
+      }
     case .balanced:
       applyPreset(mode: .curve, curveStage: .balanced) { [helperClient] completion in
         helperClient.applyBalancedPreset(completion: completion)
@@ -661,7 +677,7 @@ private struct PreviewHelperInstaller: HelperInstalling {
 
 private struct PreviewHelperClient: HelperCommunicating {
   func probe(completion: @escaping @Sendable (Result<String, Error>) -> Void) {
-    completion(.success("0.8.0"))
+    completion(.success(BreezeHelperConstants.helperVersion))
   }
 
   func automaticControlStatus(
@@ -715,6 +731,20 @@ private struct PreviewHelperClient: HelperCommunicating {
           actualRPMs: [2_800, 2_950],
           didRestoreAutomatic: false,
           message: "Balanced preset reached and verified on both fans."
+        )))
+  }
+
+  func applyQuietPreset(
+    completion: @escaping @Sendable (Result<PresetControlStatus, Error>) -> Void
+  ) {
+    completion(
+      .success(
+        .init(
+          success: true,
+          targetRPMs: [2_100, 2_200],
+          actualRPMs: [2_100, 2_200],
+          didRestoreAutomatic: false,
+          message: "Quiet preset reached and verified on both fans."
         )))
   }
 

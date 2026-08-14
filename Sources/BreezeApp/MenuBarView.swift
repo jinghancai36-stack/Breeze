@@ -219,7 +219,9 @@ struct MenuBarView: View {
           Text(L10n.text("curve.title", fallback: "Automatic Curve"))
             .font(.caption.weight(.semibold))
           Text(
-            L10n.text("curve.summary", fallback: "CPU/GPU peak · 60° Balanced · 75° Cool · 88° Max")
+            L10n.text(
+              "curve.summary",
+              fallback: "CPU/GPU peak · Quiet · 60° Balanced · 75° Cool · 88° Max")
           )
           .font(.caption2)
           .foregroundStyle(.secondary)
@@ -438,6 +440,7 @@ struct MenuBarView: View {
   private var fanCurveStageTitle: String {
     switch state.fanCurveStage {
     case .automatic: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic")
+    case .quiet: L10n.text("mode.quiet", fallback: "Quiet")
     case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
     case .cool: L10n.text("mode.cool", fallback: "Cool")
     case .max: L10n.text("mode.max", fallback: "Max")

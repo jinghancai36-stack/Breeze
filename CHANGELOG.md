@@ -11,10 +11,12 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 - Fan Curve settings with current stage, control temperature, thresholds, and safety behavior.
 - A native macOS application icon with a cool-blue five-blade fan mark.
 - An on-demand Breeze dashboard window with Overview, Cooling, Curves, and Providers sections.
+- A bounded Quiet curve stage at 20% of each detected fan range.
 
 ### Safety
 
-- The curve first restores Apple Automatic, starts disabled after launch and wake, and cancels itself after Helper or watchdog failure.
+- While enabled, the curve keeps Quiet, Balanced, Cool, and Max under one continuous Helper watchdog lease instead of handing low temperatures back to Apple.
+- Curve disable, app quit, sleep, missing temperature data, Helper failure, and watchdog loss still restore Apple Automatic.
 
 ### Planned
 

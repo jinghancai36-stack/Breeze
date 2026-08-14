@@ -4,7 +4,7 @@ import Security
 public enum BreezeHelperConstants {
   public static let machServiceName = "com.cai.Breeze.Helper"
   public static let launchDaemonPlistName = "com.cai.Breeze.Helper.plist"
-  public static let helperVersion = "0.8.0"
+  public static let helperVersion = "0.9.0"
 
   public static func peerSigningRequirement(identifier: String) -> String? {
     var code: SecCode?
@@ -48,6 +48,8 @@ public enum BreezeHelperConstants {
   func setFanAutomatic(
     _ fanID: Int,
     withReply reply: @escaping (Bool, Int, Int, Int, Int, Int, Bool, Bool, String) -> Void)
+  func applyQuietPreset(
+    withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void)
   func applyBalancedPreset(
     withReply reply: @escaping (Bool, Int, Int, Int, Int, Bool, String) -> Void)
   func applyCoolPreset(
