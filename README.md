@@ -174,6 +174,14 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - The interface follows the language selected for Breeze in macOS
 - Developer diagnostic: `--helper-quiet`
 
+### Milestone 11 — Continuous watchdog curve
+
+- Quiet, Balanced, Cool, and Max remain under one continuous Helper watchdog lease while the curve is enabled
+- Quiet is calculated independently at 20% of each detected fan range
+- Low temperatures no longer hand control back to Apple, preventing the curve from becoming inactive before a later temperature rise
+- Explicit disable and every safety exit still restore Apple Automatic
+- Automated and supported-hardware results are recorded in [Milestone 11 Validation](docs/VALIDATION_M11.md)
+
 ## Safety
 
 Breeze uses undocumented/private hardware interfaces. Availability varies between Mac models and macOS versions. The helper runs as root only after explicit macOS approval. Manual control is restricted to a per-model and per-fan whitelist and never bypasses detected RPM bounds. A Helper-owned lease restores Automatic when the controlling GUI disappears; explicit Automatic and Quit remain the preferred release paths.
