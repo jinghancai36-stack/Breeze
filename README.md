@@ -190,6 +190,7 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - The Helper accepts only 20%–100% curve targets and independently converts them to each fan's verified RPM range as one atomic transaction
 - In-memory CPU/GPU temperature and per-fan RPM charts retain the latest 300 monitoring samples
 - Developer diagnostic: `--helper-curve <20...100, step 5>`
+- Automated and supported-hardware results are recorded in [Milestone 12 Validation](docs/VALIDATION_M12.md)
 
 ## Safety
 
