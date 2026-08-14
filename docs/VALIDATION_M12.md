@@ -26,10 +26,10 @@ Verified on the supported `MacBookPro18,3` development Mac:
 - The diagnostic armed a 15-second lease and left both fans in controlled modes `[1, 1]` while active.
 - With no heartbeat, the Helper timeout restored and verified Apple Automatic `[0, 0]`, then disarmed the watchdog.
 
-## Remaining interactive check
+## Interactive validation
 
-- Confirm the standalone window can edit and save all four points, sensor source, hysteresis, and decrease delay.
-- Enable the saved curve, confirm its displayed interpolated target and history charts update, then disable it and verify Apple Automatic.
+- The user confirmed the standalone curve editor, saving, curve enable/disable flow, interpolated target display, and history charts work normally.
+- After curve disable, the Helper verified Apple Automatic `[0, 0]` with no active watchdog lease.
 
 ## Safety result
 
