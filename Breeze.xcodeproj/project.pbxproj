@@ -42,6 +42,10 @@
 		A00000000000000000000022 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* DashboardView.swift */; };
 		A00000000000000000000023 /* CurveConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000023 /* CurveConfiguration.swift */; };
 		A00000000000000000000024 /* CurveEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000024 /* CurveEditorView.swift */; };
+		A00000000000000000000025 /* TaskSleepCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* TaskSleepCompatibility.swift */; };
+		A00000000000000000000026 /* MontereyDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* MontereyDashboardView.swift */; };
+		A00000000000000000000027 /* MontereySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000027 /* MontereySettingsView.swift */; };
+		A00000000000000000000028 /* LegacyHelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* LegacyHelperInstaller.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,6 +116,10 @@
 		B00000000000000000000022 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		B00000000000000000000023 /* CurveConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurveConfiguration.swift; sourceTree = "<group>"; };
 		B00000000000000000000024 /* CurveEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurveEditorView.swift; sourceTree = "<group>"; };
+		B00000000000000000000025 /* TaskSleepCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSleepCompatibility.swift; sourceTree = "<group>"; };
+		B00000000000000000000026 /* MontereyDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontereyDashboardView.swift; sourceTree = "<group>"; };
+		B00000000000000000000027 /* MontereySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontereySettingsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000028 /* LegacyHelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyHelperInstaller.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +174,10 @@
 				B00000000000000000000022 /* DashboardView.swift */,
 				B00000000000000000000023 /* CurveConfiguration.swift */,
 				B00000000000000000000024 /* CurveEditorView.swift */,
+				B00000000000000000000025 /* TaskSleepCompatibility.swift */,
+				B00000000000000000000026 /* MontereyDashboardView.swift */,
+				B00000000000000000000027 /* MontereySettingsView.swift */,
+				B00000000000000000000028 /* LegacyHelperInstaller.swift */,
 			);
 			path = BreezeApp;
 			sourceTree = "<group>";
@@ -300,6 +312,10 @@
 				A00000000000000000000022 /* DashboardView.swift in Sources */,
 				A00000000000000000000023 /* CurveConfiguration.swift in Sources */,
 				A00000000000000000000024 /* CurveEditorView.swift in Sources */,
+				A00000000000000000000025 /* TaskSleepCompatibility.swift in Sources */,
+				A00000000000000000000026 /* MontereyDashboardView.swift in Sources */,
+				A00000000000000000000027 /* MontereySettingsView.swift in Sources */,
+				A00000000000000000000028 /* LegacyHelperInstaller.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,22 +327,22 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		I00000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_VERSION = 6.0; }; name = Debug; };
-		I00000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; SWIFT_VERSION = 6.0; }; name = Release; };
+		I00000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 12.0; SDKROOT = macosx; SWIFT_VERSION = 6.0; }; name = Debug; };
+		I00000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 12.0; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; SWIFT_VERSION = 6.0; }; name = Release; };
 		I00000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = arm64;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Breeze-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -340,14 +356,14 @@
 				ARCHS = arm64;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Breeze-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 0.10.0;
+				MARKETING_VERSION = 0.11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -355,8 +371,8 @@
 			};
 			name = Release;
 		};
-		I00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 15; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.10.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Debug; };
-		I00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 15; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.10.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Release; };
+		I00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 18; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 12.0; MARKETING_VERSION = 0.11.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Debug; };
+		I00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ARCHS = arm64; CODE_SIGN_STYLE = Automatic; CREATE_INFOPLIST_SECTION_IN_BINARY = YES; CURRENT_PROJECT_VERSION = 18; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 12.0; MARKETING_VERSION = 0.11.0; PRODUCT_BUNDLE_IDENTIFIER = com.cai.Breeze.Helper; PRODUCT_NAME = BreezeHelper; SKIP_INSTALL = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */

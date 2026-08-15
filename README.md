@@ -28,11 +28,11 @@ Full fan control is currently verified only on:
 | --- | --- | ---: | --- | --- | --- |
 | `MacBookPro18,3` | Apple M1 Pro | 2 | Yes | Yes | Yes |
 
-Other Apple Silicon Macs can use monitoring when their sensors are readable, but Breeze does not enable writes on unverified models. See [SUPPORTED_MACS.md](SUPPORTED_MACS.md).
+Other Apple Silicon Macs can use monitoring when their sensors are readable, but Breeze does not enable writes on unverified models. Intel Macs are outside the project scope. See [SUPPORTED_MACS.md](SUPPORTED_MACS.md).
 
 ## Requirements
 
-- macOS 14 or newer
+- macOS 12 Monterey or newer
 - Apple Silicon Mac
 - Swift 6.2 / Xcode 26 or newer for development
 
@@ -63,7 +63,7 @@ open dist/Breeze.app
 
 The script enables Hardened Runtime and uses an available Apple Development certificate for local Helper testing. If no suitable identity exists, it creates an ad-hoc build and clearly warns that privileged control is unavailable.
 
-After opening Breeze, use **Settings → Helper → Install Helper** and approve the background item in System Settings when macOS requests it.
+After opening Breeze, use **Settings → Helper → Install Helper**. On macOS 13 or newer, approve the background item in System Settings when requested. Monterey uses a fixed, administrator-authorized launchd installer and asks for the Mac password once; Breeze never receives or stores that password.
 
 ## Interface
 

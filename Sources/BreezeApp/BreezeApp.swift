@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 #if canImport(BreezeHardware)
@@ -11,44 +12,29 @@ import SwiftUI
 @main
 struct BreezeApp: App {
   @NSApplicationDelegateAdaptor(BreezeAppDelegate.self) private var appDelegate
-  @State private var state: AppState
-  @AppStorage(PreferenceKey.menuBarDisplay)
-  private var menuBarDisplay = MenuBarDisplay.temperatureAndRPM.rawValue
-
-  init() {
-    NSApplication.shared.setActivationPolicy(.accessory)
-    let appState = AppState()
-    appState.start()
-    _state = State(initialValue: appState)
-  }
 
   var body: some Scene {
-    MenuBarExtra {
-      MenuBarView(state: state)
-    } label: {
-      MenuBarLabel(
-        display: MenuBarDisplay(rawValue: menuBarDisplay) ?? .temperatureAndRPM,
-        snapshot: state.snapshot
-      )
-    }
-    .menuBarExtraStyle(.window)
-
-    WindowGroup("Breeze", id: DashboardWindow.sceneID, for: DashboardWindow.self) { _ in
-      DashboardView(state: state)
-    }
-    .defaultSize(width: 900, height: 620)
-    .windowResizability(.contentMinSize)
-
     Settings {
-      SettingsView(state: state)
+      EmptyView()
     }
   }
 }
 
+@MainActor
 final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
+  private lazy var state = AppState()
+  private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+  private let popover = NSPopover()
+  private var dashboardWindow: NSWindow?
+  private var settingsWindow: NSWindow?
+  private var cancellables: Set<AnyCancellable> = []
+
   func applicationDidFinishLaunching(_ notification: Notification) {
     let arguments = ProcessInfo.processInfo.arguments
-    guard let command = arguments.first(where: { $0.hasPrefix("--helper-") }) else { return }
+    guard let command = arguments.first(where: { $0.hasPrefix("--helper-") }) else {
+      setUpApplication()
+      return
+    }
 
     let installer = SystemHelperInstaller()
     switch command {
@@ -315,22 +301,148 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
           Self.finish("Watchdog status failed: \(error.localizedDescription)", success: false)
         }
       }
+    case "--helper-legacy-install-worker":
+      let result = LegacyHelperWorker.install()
+      finish(result.message, success: result.success)
+    case "--helper-legacy-uninstall-worker":
+      let result = LegacyHelperWorker.uninstall()
+      finish(result.message, success: result.success)
     default:
       finish("Unknown helper diagnostic command: \(command)", success: false)
     }
+  }
+
+  private func setUpApplication() {
+    NSApplication.shared.setActivationPolicy(.accessory)
+    state.start()
+
+    if let button = statusItem.button {
+      button.target = self
+      button.action = #selector(togglePopover(_:))
+      button.sendAction(on: [.leftMouseUp])
+      button.imagePosition = .imageLeading
+    }
+    popover.behavior = .transient
+    popover.animates = true
+    popover.contentSize = NSSize(width: 380, height: 620)
+    popover.contentViewController = NSHostingController(
+      rootView: MenuBarView(
+        state: state,
+        showDashboardAction: { [weak self] in self?.showDashboard() },
+        showSettingsAction: { [weak self] in self?.showSettings() }
+      ))
+
+    state.$snapshot
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in self?.updateStatusItem() }
+      .store(in: &cancellables)
+    NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+      .receive(on: RunLoop.main)
+      .sink { [weak self] _ in self?.updateStatusItem() }
+      .store(in: &cancellables)
+    updateStatusItem()
+  }
+
+  @objc private func togglePopover(_ sender: Any?) {
+    if popover.isShown {
+      popover.performClose(sender)
+      return
+    }
+    guard let button = statusItem.button else { return }
+    popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    NSApplication.shared.activate(ignoringOtherApps: true)
+  }
+
+  private func updateStatusItem() {
+    guard let button = statusItem.button else { return }
+    button.image = NSImage(systemSymbolName: "fan", accessibilityDescription: "Breeze")
+    let rawDisplay = UserDefaults.standard.string(forKey: PreferenceKey.menuBarDisplay)
+      ?? MenuBarDisplay.temperatureAndRPM.rawValue
+    let display = MenuBarDisplay(rawValue: rawDisplay) ?? .temperatureAndRPM
+    let temperature = state.snapshot?.primaryTemperature?.temperature
+    let rpm = state.snapshot?.fans.first?.currentRPM
+    switch display {
+    case .icon:
+      button.title = ""
+    case .temperature:
+      button.title = temperature.map { " \(Int($0.rounded()))°" } ?? " --°"
+    case .rpm:
+      button.title = rpm.map { " \(Int($0.rounded()).formatted())" } ?? " --"
+    case .temperatureAndRPM:
+      let temperatureText = temperature.map { "\(Int($0.rounded()))°" } ?? "--°"
+      let rpmText = rpm.map { Int($0.rounded()).formatted() } ?? "--"
+      button.title = " \(temperatureText)  \(rpmText)"
+    }
+    button.toolTip = "Breeze"
+  }
+
+  private func showDashboard() {
+    if let dashboardWindow {
+      present(dashboardWindow)
+      return
+    }
+    let rootView: AnyView
+    if #available(macOS 14.0, *) {
+      rootView = AnyView(DashboardView(state: state))
+    } else {
+      rootView = AnyView(MontereyDashboardView(state: state))
+    }
+    let window = makeWindow(
+      title: "Breeze", size: NSSize(width: 900, height: 620), rootView: rootView)
+    dashboardWindow = window
+    present(window)
+  }
+
+  private func showSettings() {
+    if let settingsWindow {
+      present(settingsWindow)
+      return
+    }
+    let rootView: AnyView
+    if #available(macOS 14.0, *) {
+      rootView = AnyView(SettingsView(state: state))
+    } else {
+      rootView = AnyView(MontereySettingsView(state: state))
+    }
+    let window = makeWindow(
+      title: L10n.text("action.settings", fallback: "Settings"),
+      size: NSSize(width: 500, height: 420),
+      rootView: rootView)
+    settingsWindow = window
+    present(window)
+  }
+
+  private func makeWindow(title: String, size: NSSize, rootView: AnyView) -> NSWindow {
+    let window = NSWindow(
+      contentRect: NSRect(origin: .zero, size: size),
+      styleMask: [.titled, .closable, .miniaturizable, .resizable],
+      backing: .buffered,
+      defer: false)
+    window.title = title
+    window.contentViewController = NSHostingController(rootView: rootView)
+    window.setContentSize(size)
+    window.center()
+    window.isReleasedWhenClosed = false
+    return window
+  }
+
+  private func present(_ window: NSWindow) {
+    NSApplication.shared.activate(ignoringOtherApps: true)
+    window.makeKeyAndOrderFront(nil)
+    window.orderFrontRegardless()
   }
 
   private func finish(_ message: String, success: Bool) {
     Self.finish(message, success: success)
   }
 
-  private static func finish(_ message: String, success: Bool) {
+  nonisolated private static func finish(_ message: String, success: Bool) {
     let handle = success ? FileHandle.standardOutput : FileHandle.standardError
     handle.write(Data("\(message)\n".utf8))
     exit(success ? EXIT_SUCCESS : EXIT_FAILURE)
   }
 
-  private static func unregister(_ installer: SystemHelperInstaller) {
+  nonisolated private static func unregister(_ installer: SystemHelperInstaller) {
     do {
       try installer.unregister()
       finish("Helper status: \(installer.status.diagnosticName)", success: true)
@@ -361,7 +473,6 @@ private struct MenuBarLabel: View {
       if let displayText {
         Text(displayText)
           .monospacedDigit()
-          .contentTransition(.numericText())
       }
     }
     .accessibilityLabel(displayText.map { "Breeze, \($0)" } ?? "Breeze")

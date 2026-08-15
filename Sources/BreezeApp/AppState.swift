@@ -1,7 +1,7 @@
 import AppKit
+import Combine
 import Foundation
 import OSLog
-import Observation
 
 #if canImport(BreezeHardware)
   import BreezeHardware
@@ -20,47 +20,46 @@ enum ActiveFanControlMode: String, Equatable, Sendable {
 }
 
 @MainActor
-@Observable
-final class AppState {
-  private(set) var snapshot: HardwareSnapshot?
-  private(set) var errorMessage: String?
-  private(set) var isLoading = true
-  private(set) var lastSuccessfulUpdate: Date?
-  private(set) var isSleeping = false
-  private(set) var isPopoverVisible = false
-  private(set) var helperStatus: HelperRegistrationStatus = .notRegistered
-  private(set) var helperVersion: String?
-  private(set) var helperErrorMessage: String?
-  private(set) var isCheckingHelper = false
-  private(set) var automaticControlStatus: AutomaticControlStatus?
-  private(set) var isRestoringAutomaticControl = false
-  private(set) var fanControlStatuses: [Int: FanControlStatus] = [:]
-  private(set) var fansApplyingControl: Set<Int> = []
-  private(set) var controlLeaseStatus: ControlLeaseStatus?
-  private(set) var presetControlStatus: PresetControlStatus?
-  private(set) var activeControlMode: ActiveFanControlMode = .automatic
-  private(set) var isApplyingPreset = false
-  private(set) var isFanCurveEnabled = false
-  private(set) var fanCurveStage: FanCurveStage = .automatic
-  private(set) var fanCurveTemperature: Double?
-  private(set) var fanCurveTargetPercent: Int?
-  private(set) var fanCurveConfiguration: FanCurveConfiguration
-  private(set) var thermalHistory: [ThermalHistorySample] = []
+final class AppState: ObservableObject {
+  @Published private(set) var snapshot: HardwareSnapshot?
+  @Published private(set) var errorMessage: String?
+  @Published private(set) var isLoading = true
+  @Published private(set) var lastSuccessfulUpdate: Date?
+  @Published private(set) var isSleeping = false
+  @Published private(set) var isPopoverVisible = false
+  @Published private(set) var helperStatus: HelperRegistrationStatus = .notRegistered
+  @Published private(set) var helperVersion: String?
+  @Published private(set) var helperErrorMessage: String?
+  @Published private(set) var isCheckingHelper = false
+  @Published private(set) var automaticControlStatus: AutomaticControlStatus?
+  @Published private(set) var isRestoringAutomaticControl = false
+  @Published private(set) var fanControlStatuses: [Int: FanControlStatus] = [:]
+  @Published private(set) var fansApplyingControl: Set<Int> = []
+  @Published private(set) var controlLeaseStatus: ControlLeaseStatus?
+  @Published private(set) var presetControlStatus: PresetControlStatus?
+  @Published private(set) var activeControlMode: ActiveFanControlMode = .automatic
+  @Published private(set) var isApplyingPreset = false
+  @Published private(set) var isFanCurveEnabled = false
+  @Published private(set) var fanCurveStage: FanCurveStage = .automatic
+  @Published private(set) var fanCurveTemperature: Double?
+  @Published private(set) var fanCurveTargetPercent: Int?
+  @Published private(set) var fanCurveConfiguration: FanCurveConfiguration
+  @Published private(set) var thermalHistory: [ThermalHistorySample] = []
 
-  @ObservationIgnored private let logger = Logger(
+  private let logger = Logger(
     subsystem: "com.breeze.monitor", category: "Hardware")
-  @ObservationIgnored private let monitor: (any HardwareMonitoring)?
-  @ObservationIgnored private let helperInstaller: any HelperInstalling
-  @ObservationIgnored private let helperClient: any HelperCommunicating
-  @ObservationIgnored private let curveConfigurationStore: CurveConfigurationStore
-  @ObservationIgnored private let thermalHistoryStore: ThermalHistoryStore
-  @ObservationIgnored private let terminateApp: @MainActor () -> Void
-  @ObservationIgnored private var pollingTask: Task<Void, Never>?
-  @ObservationIgnored private var leaseHeartbeatTask: Task<Void, Never>?
-  @ObservationIgnored private var controlRequestGeneration = 0
-  @ObservationIgnored private var fanCurveDecisionState = FanCurveDecisionState()
-  @ObservationIgnored private var historySamplesSinceSave = 0
-  @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
+  private let monitor: (any HardwareMonitoring)?
+  private let helperInstaller: any HelperInstalling
+  private let helperClient: any HelperCommunicating
+  private let curveConfigurationStore: CurveConfigurationStore
+  private let thermalHistoryStore: ThermalHistoryStore
+  private let terminateApp: @MainActor () -> Void
+  private var pollingTask: Task<Void, Never>?
+  private var leaseHeartbeatTask: Task<Void, Never>?
+  private var controlRequestGeneration = 0
+  private var fanCurveDecisionState = FanCurveDecisionState()
+  private var historySamplesSinceSave = 0
+  private var workspaceObservers: [NSObjectProtocol] = []
 
   init(
     monitor: (any HardwareMonitoring)? = nil,
@@ -495,7 +494,7 @@ final class AppState {
       }
       do {
         let seconds = MonitoringPolicy.refreshInterval(isPopoverVisible: isPopoverVisible)
-        try await Task.sleep(for: .seconds(seconds))
+        try await TaskSleepCompatibility.sleep(for: seconds)
       } catch {
         return
       }
@@ -546,7 +545,7 @@ final class AppState {
         }
 
         do {
-          try await Task.sleep(for: .seconds(ControlLeaseTiming.heartbeatSeconds))
+          try await TaskSleepCompatibility.sleep(for: TimeInterval(ControlLeaseTiming.heartbeatSeconds))
         } catch {
           return
         }

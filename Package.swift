@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
   name: "Breeze",
-  platforms: [.macOS(.v14)],
+  platforms: [.macOS(.v12)],
   products: [
     .library(name: "BreezeIPC", targets: ["BreezeIPC"]),
     .library(name: "BreezeHardware", targets: ["BreezeHardware"]),

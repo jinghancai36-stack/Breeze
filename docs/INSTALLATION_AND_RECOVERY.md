@@ -10,7 +10,7 @@ Do not disable Gatekeeper globally and do not manually install an unsigned execu
 
 Requirements:
 
-- Apple Silicon Mac running macOS 14 or newer;
+- Apple Silicon Mac running macOS 12 Monterey or newer;
 - Xcode 26 or newer;
 - a local Apple Development signing identity for privileged Helper testing.
 
@@ -21,7 +21,9 @@ Build and open the app:
 open dist/Breeze.app
 ```
 
-Then open **Breeze → Settings → Helper**, choose **Install Helper**, and approve Breeze in **System Settings → General → Login Items & Extensions** when macOS asks. The Helper must report the same version as the app before fan controls are enabled.
+Then open **Breeze → Settings → Helper** and choose **Install Helper**. On macOS 13 or newer, approve Breeze in **System Settings → General → Login Items & Extensions** when macOS asks. On Monterey, Breeze invokes a fixed installer through the standard administrator dialog; the system handles the password and Breeze never receives or stores it. The Helper must report the same version as the app before fan controls are enabled.
+
+The Monterey path copies only the bundled `BreezeHelper` to `/Library/PrivilegedHelperTools`, writes one fixed `com.cai.Breeze.Helper` LaunchDaemon property list, and starts that service. It refuses to run from an ad-hoc unsigned build. Removal first verifies Apple Automatic, then uses the same administrator flow to stop and remove those two fixed files.
 
 Without a usable Apple Development identity, the script creates an ad-hoc signed app. Monitoring may work, but Breeze intentionally does not claim that its privileged fan controls will work.
 
@@ -53,7 +55,7 @@ A safe result reports modes `[0,0]` on the currently verified `MacBookPro18,3`. 
 /path/to/Breeze.app/Contents/MacOS/Breeze --helper-unregister
 ```
 
-If macOS requires approval or the Helper cannot be reached, stop changing app files and use Breeze's Helper settings plus **System Settings → General → Login Items & Extensions**. Do not replace the embedded Helper while a manual or preset mode is active.
+If macOS requires approval or the Helper cannot be reached, stop changing app files and use Breeze's Helper settings. On macOS 13 or newer, also check **System Settings → General → Login Items & Extensions**. Do not replace the embedded Helper while a manual or preset mode is active.
 
 ## What to include in a support report
 

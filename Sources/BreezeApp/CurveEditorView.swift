@@ -1,8 +1,9 @@
 import Charts
 import SwiftUI
 
+@available(macOS 14.0, *)
 struct CurveEditorView: View {
-  let state: AppState
+  @ObservedObject var state: AppState
   @State private var draft: FanCurveConfiguration
   @State private var savedMessage: String?
   @State private var draggedPointID: FanCurvePoint.ID?
@@ -332,6 +333,7 @@ struct CurveEditorView: View {
   }
 }
 
+@available(macOS 13.0, *)
 struct ThermalHistoryChart: View {
   let samples: [ThermalHistorySample]
 

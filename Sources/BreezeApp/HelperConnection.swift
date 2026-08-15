@@ -21,30 +21,41 @@ protocol HelperInstalling {
 }
 
 struct SystemHelperInstaller: HelperInstalling {
-  private var service: SMAppService {
-    .daemon(plistName: BreezeHelperConstants.launchDaemonPlistName)
-  }
-
   var status: HelperRegistrationStatus {
-    switch service.status {
-    case .notRegistered: .notRegistered
-    case .enabled: .enabled
-    case .requiresApproval: .requiresApproval
-    case .notFound: .notFound
-    @unknown default: .notFound
+    if #available(macOS 13.0, *) {
+      let service = SMAppService.daemon(plistName: BreezeHelperConstants.launchDaemonPlistName)
+      switch service.status {
+      case .notRegistered: return .notRegistered
+      case .enabled: return .enabled
+      case .requiresApproval: return .requiresApproval
+      case .notFound: return .notFound
+      @unknown default: return .notFound
+      }
+    } else {
+      return LegacyHelperInstaller().status
     }
   }
 
   func register() throws {
-    try service.register()
+    if #available(macOS 13.0, *) {
+      try SMAppService.daemon(plistName: BreezeHelperConstants.launchDaemonPlistName).register()
+    } else {
+      try LegacyHelperInstaller().register()
+    }
   }
 
   func unregister() throws {
-    try service.unregister()
+    if #available(macOS 13.0, *) {
+      try SMAppService.daemon(plistName: BreezeHelperConstants.launchDaemonPlistName).unregister()
+    } else {
+      try LegacyHelperInstaller().unregister()
+    }
   }
 
   func openSystemSettings() {
-    SMAppService.openSystemSettingsLoginItems()
+    if #available(macOS 13.0, *) {
+      SMAppService.openSystemSettingsLoginItems()
+    }
   }
 }
 
@@ -167,15 +178,15 @@ protocol HelperCommunicating:
 final class HelperClient: HelperCommunicating, @unchecked Sendable {
   private let connectionFactory: @Sendable () -> NSXPCConnection
   private let serverSigningRequirement: String?
-  private let timeout: Duration
-  private let manualTimeout: Duration
-  private let presetTimeout: Duration
+  private let timeout: TimeInterval
+  private let manualTimeout: TimeInterval
+  private let presetTimeout: TimeInterval
   private let logger = Logger(subsystem: "com.breeze.monitor", category: "XPC")
 
   init(
-    timeout: Duration = .seconds(3),
-    manualTimeout: Duration = .seconds(18),
-    presetTimeout: Duration = .seconds(36)
+    timeout: TimeInterval = 3,
+    manualTimeout: TimeInterval = 18,
+    presetTimeout: TimeInterval = 36
   ) {
     self.timeout = timeout
     self.manualTimeout = manualTimeout
@@ -192,9 +203,9 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
 
   init(
     endpoint: NSXPCListenerEndpoint,
-    timeout: Duration = .seconds(3),
-    manualTimeout: Duration = .seconds(18),
-    presetTimeout: Duration = .seconds(36)
+    timeout: TimeInterval = 3,
+    manualTimeout: TimeInterval = 18,
+    presetTimeout: TimeInterval = 36
   ) {
     self.timeout = timeout
     self.manualTimeout = manualTimeout
@@ -256,7 +267,9 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     let connection = connectionFactory()
     let gate = HelperReplyGate(connection: connection, completion: completion)
     connection.remoteObjectInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
-    if let serverSigningRequirement { connection.setCodeSigningRequirement(serverSigningRequirement) }
+    if #available(macOS 13.0, *), let serverSigningRequirement {
+      connection.setCodeSigningRequirement(serverSigningRequirement)
+    }
     connection.interruptionHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
     connection.invalidationHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
     connection.resume()
@@ -272,7 +285,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     }
 
     Task {
-      try? await Task.sleep(for: presetTimeout)
+      try? await TaskSleepCompatibility.sleep(for: presetTimeout)
       gate.finish(.failure(HelperConnectionError.timedOut))
     }
     let reply: (Bool, Int, Int, Int, Int, Bool, String) -> Void = {
@@ -314,7 +327,9 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     let connection = connectionFactory()
     let gate = HelperReplyGate(connection: connection, completion: completion)
     connection.remoteObjectInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
-    if let serverSigningRequirement { connection.setCodeSigningRequirement(serverSigningRequirement) }
+    if #available(macOS 13.0, *), let serverSigningRequirement {
+      connection.setCodeSigningRequirement(serverSigningRequirement)
+    }
     connection.interruptionHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
     connection.invalidationHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
     connection.resume()
@@ -330,7 +345,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     }
 
     Task {
-      try? await Task.sleep(for: manualTimeout)
+      try? await TaskSleepCompatibility.sleep(for: manualTimeout)
       gate.finish(.failure(HelperConnectionError.timedOut))
     }
 
@@ -356,7 +371,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     let connection = connectionFactory()
     let gate = HelperReplyGate(connection: connection, completion: completion)
     connection.remoteObjectInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
-    if let serverSigningRequirement {
+    if #available(macOS 13.0, *), let serverSigningRequirement {
       connection.setCodeSigningRequirement(serverSigningRequirement)
     }
     connection.interruptionHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
@@ -374,7 +389,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     }
 
     Task {
-      try? await Task.sleep(for: timeout)
+      try? await TaskSleepCompatibility.sleep(for: timeout)
       gate.finish(.failure(HelperConnectionError.timedOut))
     }
 
@@ -424,7 +439,9 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     let connection = connectionFactory()
     let gate = HelperReplyGate(connection: connection, completion: completion)
     connection.remoteObjectInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
-    if let serverSigningRequirement { connection.setCodeSigningRequirement(serverSigningRequirement) }
+    if #available(macOS 13.0, *), let serverSigningRequirement {
+      connection.setCodeSigningRequirement(serverSigningRequirement)
+    }
     connection.interruptionHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
     connection.invalidationHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
     connection.resume()
@@ -440,7 +457,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     }
 
     Task {
-      try? await Task.sleep(for: timeout)
+      try? await TaskSleepCompatibility.sleep(for: timeout)
       gate.finish(.failure(HelperConnectionError.timedOut))
     }
     let reply: (Bool, Int, String) -> Void = { active, remaining, message in
@@ -465,7 +482,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     let connection = connectionFactory()
     let gate = HelperReplyGate(connection: connection, completion: completion)
     connection.remoteObjectInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
-    if let serverSigningRequirement {
+    if #available(macOS 13.0, *), let serverSigningRequirement {
       connection.setCodeSigningRequirement(serverSigningRequirement)
     }
     connection.interruptionHandler = { gate.finish(.failure(HelperConnectionError.unavailable)) }
@@ -483,7 +500,7 @@ final class HelperClient: HelperCommunicating, @unchecked Sendable {
     }
 
     Task {
-      try? await Task.sleep(for: timeout)
+      try? await TaskSleepCompatibility.sleep(for: timeout)
       gate.finish(.failure(HelperConnectionError.timedOut))
     }
 

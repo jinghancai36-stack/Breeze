@@ -13,6 +13,14 @@ private final class LeaseTestClock: @unchecked Sendable {
 
 @Suite("Helper XPC")
 struct HelperXPCTests {
+  @Test("The Monterey installer worker refuses an unprivileged process")
+  func legacyInstallerRequiresRoot() {
+    let result = LegacyHelperWorker.install()
+
+    #expect(!result.success)
+    #expect(result.message.contains("must run as root"))
+  }
+
   @Test("Graceful Helper termination restores Automatic before exit")
   func gracefulTerminationRecovery() {
     let hardware = TestAutomaticHardware()
@@ -42,7 +50,7 @@ struct HelperXPCTests {
     listener.resume()
     defer { listener.invalidate() }
 
-    let client = HelperClient(endpoint: listener.endpoint, timeout: .seconds(1))
+    let client = HelperClient(endpoint: listener.endpoint, timeout: 1)
     for _ in 0..<25 {
       let version = try await probe(client)
       #expect(version == BreezeHelperConstants.helperVersion)
@@ -54,7 +62,7 @@ struct HelperXPCTests {
     let listener = NSXPCListener.anonymous()
     let endpoint = listener.endpoint
     listener.invalidate()
-    let client = HelperClient(endpoint: endpoint, timeout: .milliseconds(100))
+    let client = HelperClient(endpoint: endpoint, timeout: 0.1)
     do {
       _ = try await probe(client)
       Issue.record("An unregistered system helper unexpectedly replied")
@@ -80,7 +88,7 @@ struct HelperXPCTests {
     listener.resume()
     defer { listener.invalidate() }
 
-    let client = HelperClient(endpoint: listener.endpoint, timeout: .seconds(1))
+    let client = HelperClient(endpoint: listener.endpoint, timeout: 1)
     let before = try await automaticStatus(client)
     #expect(!before.isAutomatic)
     #expect(before.fanModes == [1, 1])
@@ -109,7 +117,7 @@ struct HelperXPCTests {
     defer { listener.invalidate() }
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), manualTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, manualTimeout: 1)
     let manual = try await setRPM(client, fanID: 0, rpm: 10)
     #expect(manual.success)
     #expect(manual.appliedRPM == 1_200)
@@ -145,7 +153,7 @@ struct HelperXPCTests {
     defer { listener.invalidate() }
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), manualTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, manualTimeout: 1)
     _ = try await setRPM(client, fanID: 0, rpm: 1_400)
 
     let armed = try await leaseStatus(client)
@@ -189,7 +197,7 @@ struct HelperXPCTests {
     defer { listener.invalidate() }
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, presetTimeout: 1)
     let balanced = try await applyBalanced(client)
 
     #expect(balanced.success)
@@ -226,7 +234,7 @@ struct HelperXPCTests {
     defer { listener.invalidate() }
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, presetTimeout: 1)
     let quiet = try await applyQuiet(client)
 
     #expect(quiet.success)
@@ -263,7 +271,7 @@ struct HelperXPCTests {
     defer { listener.invalidate() }
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, presetTimeout: 1)
     let curve = try await applyCurve(client, percent: 45)
 
     #expect(curve.success)
@@ -302,7 +310,7 @@ struct HelperXPCTests {
     defer { listener.invalidate() }
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, presetTimeout: 1)
     let cool = try await applyCool(client)
 
     #expect(cool.success)
@@ -338,7 +346,7 @@ struct HelperXPCTests {
     defer { listener.invalidate() }
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), presetTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, presetTimeout: 1)
     let max = try await applyMax(client)
 
     #expect(max.success)
@@ -370,7 +378,7 @@ struct HelperXPCTests {
     listener.resume()
 
     let client = HelperClient(
-      endpoint: listener.endpoint, timeout: .seconds(1), manualTimeout: .seconds(1))
+      endpoint: listener.endpoint, timeout: 1, manualTimeout: 1)
     _ = try await setRPM(client, fanID: 0, rpm: 1_400)
     #expect(hardware.values[.fan0Mode] == 1)
     listener.invalidate() // No more heartbeat transport can reach the Helper.
@@ -394,7 +402,7 @@ struct HelperXPCTests {
     listener.resume()
     defer { listener.invalidate() }
 
-    let client = HelperClient(endpoint: listener.endpoint, timeout: .milliseconds(200))
+    let client = HelperClient(endpoint: listener.endpoint, timeout: 0.2)
     do {
       _ = try await probe(client)
       Issue.record("An unexpected executable path was accepted")

@@ -9,9 +9,9 @@ import SwiftUI
 #endif
 
 struct MenuBarView: View {
-  let state: AppState
-  @Environment(\.openWindow) private var openWindow
-  @Environment(\.openSettings) private var openSettings
+  @ObservedObject var state: AppState
+  var showDashboardAction: () -> Void = {}
+  var showSettingsAction: () -> Void = {}
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -84,12 +84,18 @@ struct MenuBarView: View {
         }
       }
     } else {
-      ContentUnavailableView(
-        L10n.text("hardware.unavailable", fallback: "Hardware unavailable"),
-        systemImage: "exclamationmark.triangle",
-        description: Text(
-          state.errorMessage ?? L10n.text("error.smcRead", fallback: "Unable to read AppleSMC."))
-      )
+      VStack(spacing: 8) {
+        Image(systemName: "exclamationmark.triangle")
+          .font(.title2)
+        Text(L10n.text("hardware.unavailable", fallback: "Hardware unavailable"))
+          .font(.headline)
+        Text(state.errorMessage ?? L10n.text("error.smcRead", fallback: "Unable to read AppleSMC."))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+      }
+      .frame(maxWidth: .infinity)
+      .padding(.vertical, 20)
     }
   }
 
@@ -390,29 +396,11 @@ struct MenuBarView: View {
   }
 
   private func showSettings() {
-    openSettings()
-    NSApplication.shared.activate(ignoringOtherApps: true)
-
-    Task { @MainActor in
-      try? await Task.sleep(for: .milliseconds(100))
-      NSApplication.shared.activate(ignoringOtherApps: true)
-      let settingsWindow = NSApplication.shared.windows
-        .first { !($0 is NSPanel) && $0.canBecomeKey }
-      settingsWindow?.makeKeyAndOrderFront(nil)
-    }
+    showSettingsAction()
   }
 
   private func showDashboard() {
-    openWindow(id: DashboardWindow.sceneID, value: DashboardWindow.main)
-    NSApplication.shared.activate(ignoringOtherApps: true)
-
-    Task { @MainActor in
-      try? await Task.sleep(for: .milliseconds(100))
-      NSApplication.shared.activate(ignoringOtherApps: true)
-      NSApplication.shared.windows
-        .first { $0.title == "Breeze" && !($0 is NSPanel) }?
-        .makeKeyAndOrderFront(nil)
-    }
+    showDashboardAction()
   }
 
   private var activeModeLabel: String {
@@ -465,7 +453,6 @@ struct MenuBarView: View {
       Text(value)
         .monospacedDigit()
         .fontWeight(.medium)
-        .contentTransition(.numericText())
         .animation(.easeInOut(duration: 0.2), value: value)
     }
   }
@@ -515,7 +502,7 @@ extension StatusMessage where Actions == EmptyView {
 
 private struct FanControlRow: View {
   let fan: FanState
-  let state: AppState
+  @ObservedObject var state: AppState
   @State private var targetRPM: Double
 
   init(fan: FanState, state: AppState) {
@@ -537,7 +524,6 @@ private struct FanControlRow: View {
           } else {
             Text("\(Int(fan.currentRPM.rounded()).formatted()) RPM")
               .monospacedDigit()
-              .contentTransition(.numericText())
               .animation(.easeInOut(duration: 0.2), value: fan.currentRPM)
           }
         }
@@ -552,7 +538,6 @@ private struct FanControlRow: View {
           Spacer()
           Text(L10n.format("fan.targetRPM", fallback: "Target %d RPM", Int(targetRPM.rounded())))
             .monospacedDigit()
-            .contentTransition(.numericText())
             .animation(.easeInOut(duration: 0.2), value: targetRPM)
           Spacer()
           Text("\(Int(maximum.rounded()))")

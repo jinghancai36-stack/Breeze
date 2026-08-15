@@ -65,7 +65,7 @@ enum BreezeCLI {
           "[\(samples)/\(duration)] fans=\(snapshot.fans.count) sensors=\(snapshot.sensors.count)")
       }
       if samples < duration {
-        try await Task.sleep(for: .seconds(1))
+        try await Task.sleep(nanoseconds: 1_000_000_000)
       }
     }
 
@@ -84,7 +84,7 @@ enum BreezeCLI {
       printFans(snapshot.fans)
       print("")
       printTemperatures(snapshot.sensors)
-      try await Task.sleep(for: .seconds(1))
+      try await Task.sleep(nanoseconds: 1_000_000_000)
     }
   }
 

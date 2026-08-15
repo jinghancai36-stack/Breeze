@@ -5,11 +5,12 @@ import SwiftUI
   import BreezeHardware
 #endif
 
+@available(macOS 14.0, *)
 struct SettingsView: View {
-  let state: AppState
+  @ObservedObject var state: AppState
   @AppStorage(PreferenceKey.menuBarDisplay)
   private var menuBarDisplay = MenuBarDisplay.temperatureAndRPM.rawValue
-  @State private var loginItem = LaunchAtLoginController()
+  @StateObject private var loginItem = LaunchAtLoginController()
 
   var body: some View {
     TabView {
@@ -349,7 +350,7 @@ struct SettingsView: View {
       Section(L10n.text("about.build", fallback: "Build")) {
         LabeledContent(L10n.text("about.version", fallback: "Version"), value: appVersion)
         LabeledContent(L10n.text("about.buildNumber", fallback: "Build"), value: buildNumber)
-        LabeledContent(L10n.text("about.minimumMacOS", fallback: "Minimum macOS"), value: "14.0")
+        LabeledContent(L10n.text("about.minimumMacOS", fallback: "Minimum macOS"), value: "12.0")
         LabeledContent(L10n.text("about.license", fallback: "License"), value: "MIT")
       }
 
@@ -412,6 +413,9 @@ struct SettingsView: View {
   }
 }
 
-#Preview("Settings") {
-  SettingsView(state: .preview)
+@available(macOS 14.0, *)
+private struct SettingsPreview: View {
+  var body: some View {
+    SettingsView(state: .preview)
+  }
 }

@@ -380,17 +380,17 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.enableFanCurve()
     for _ in 0..<50 where state.fanCurveStage != .cool {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     monitor.setTemperature(nil)
     await state.refreshForTesting()
     for _ in 0..<50 where client.restoreCount < 1 || state.isRestoringAutomaticControl {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(!state.isFanCurveEnabled)
@@ -412,11 +412,11 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.enableFanCurve()
     for _ in 0..<50 where client.curveTargetPercents.isEmpty || client.renewalCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(state.isFanCurveEnabled)
@@ -429,7 +429,7 @@ struct AppStateTests {
 
     state.disableFanCurve()
     for _ in 0..<50 where client.restoreCount < 1 || state.isRestoringAutomaticControl {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(!state.isFanCurveEnabled)
     #expect(state.fanCurveStage == .automatic)
@@ -450,12 +450,12 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     state.enableFanCurve()
     for _ in 0..<50 where state.fanCurveStage != .quiet || client.renewalCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.isFanCurveEnabled)
     #expect(state.activeControlMode == .curve)
@@ -466,7 +466,7 @@ struct AppStateTests {
     monitor.setTemperature(61)
     await state.refreshForTesting()
     for _ in 0..<50 where state.fanCurveStage != .balanced {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(client.curveTargetPercents == [30, 35])
     #expect(client.restoreCount == 0)
@@ -489,16 +489,16 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.enableFanCurve()
     for _ in 0..<50 where client.renewalCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     state.disableFanCurve()
     for _ in 0..<50 where state.isRestoringAutomaticControl {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     client.completePendingRenewal(
       with: .success(
@@ -531,14 +531,14 @@ struct AppStateTests {
     #expect(state.isSleeping)
 
     // Let an already-scheduled initial poll settle before measuring wake behavior.
-    try await Task.sleep(for: .milliseconds(20))
+    try await Task.sleep(nanoseconds: 20_000_000)
     let readsBeforeWake = monitor.readCount
     NSWorkspace.shared.notificationCenter.post(
       name: NSWorkspace.didWakeNotification, object: nil)
 
     for _ in 0..<50 {
       if !state.isSleeping, monitor.readCount > readsBeforeWake { break }
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(!state.isSleeping)
@@ -562,14 +562,14 @@ struct AppStateTests {
 
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.helperVersion == BreezeHelperConstants.helperVersion)
     #expect(state.helperErrorMessage == nil)
 
     state.uninstallHelper()
     for _ in 0..<50 where installer.unregisterCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.helperStatus == .notRegistered)
     #expect(installer.unregisterCount == 1)
@@ -591,7 +591,7 @@ struct AppStateTests {
 
     state.uninstallHelper()
     for _ in 0..<50 where state.isRestoringAutomaticControl {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(helper.restoreCount == 1)
@@ -613,17 +613,17 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.setFanRPM(fanID: 0, rpm: 1_400)
     for _ in 0..<50 where state.fanControlStatuses[0] == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.fanControlStatuses[0]?.isManual == true)
 
     state.restoreAutomaticControl()
     for _ in 0..<50 where state.automaticControlStatus == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(state.automaticControlStatus?.isAutomatic == true)
@@ -646,32 +646,32 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.canControlFan(0))
 
     state.setFanRPM(fanID: 0, rpm: 1_400)
     for _ in 0..<50 where state.fanControlStatuses[0] == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.fanControlStatuses[0]?.isManual == true)
     #expect(state.fanControlStatuses[0]?.appliedRPM == 1_400)
     for _ in 0..<50 where client.renewalCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(client.renewalCount == 1)
     #expect(state.controlLeaseStatus?.isActive == true)
 
     state.setFanAutomatic(fanID: 0)
     for _ in 0..<50 where state.fanControlStatuses[0]?.isManual == true {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.fanControlStatuses[0]?.isManual == false)
     #expect(state.controlLeaseStatus == nil)
 
     state.setFanRPM(fanID: 0, rpm: 1_450)
     for _ in 0..<50 where client.renewalCount < 2 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(client.renewalCount == 2)
     #expect(state.controlLeaseStatus?.isActive == true)
@@ -690,11 +690,11 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.applyBalancedPreset()
     for _ in 0..<50 where client.presetCount == 0 || client.renewalCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(client.presetCount == 1)
@@ -704,7 +704,7 @@ struct AppStateTests {
 
     state.restoreAutomaticControl()
     for _ in 0..<50 where state.activeControlMode != .automatic {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.presetControlStatus == nil)
     #expect(state.controlLeaseStatus == nil)
@@ -728,11 +728,11 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.applyBalancedPreset()
     for _ in 0..<50 where state.presetControlStatus == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(state.activeControlMode == .automatic)
@@ -753,11 +753,11 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.applyCoolPreset()
     for _ in 0..<50 where client.coolPresetCount == 0 || client.renewalCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(client.coolPresetCount == 1)
@@ -779,11 +779,11 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.applyMaxPreset()
     for _ in 0..<50 where client.maxPresetCount == 0 || client.renewalCount == 0 {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(client.maxPresetCount == 1)
@@ -804,7 +804,7 @@ struct AppStateTests {
     await state.refreshForTesting()
     state.pingHelper()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(state.helperVersion == "0.5.0")
@@ -830,11 +830,11 @@ struct AppStateTests {
     defer { state.stop() }
     await state.refreshForTesting()
     for _ in 0..<50 where state.helperVersion == nil {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.setFanRPM(fanID: 0, rpm: 1_400)
     for _ in 0..<50 where state.fanControlStatuses[0]?.isManual != true {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     NSWorkspace.shared.notificationCenter.post(
@@ -843,14 +843,14 @@ struct AppStateTests {
     where client.restoreCount == 0 || !state.fanControlStatuses.isEmpty
       || state.isRestoringAutomaticControl
     {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(client.restoreCount == 1)
     #expect(state.fanControlStatuses.isEmpty)
 
     NSWorkspace.shared.notificationCenter.post(
       name: NSWorkspace.didWakeNotification, object: nil)
-    try await Task.sleep(for: .milliseconds(30))
+    try await Task.sleep(nanoseconds: 30_000_000)
     #expect(state.fanControlStatuses.isEmpty)
     #expect(state.automaticControlStatus?.isAutomatic == true)
   }
@@ -869,7 +869,7 @@ struct AppStateTests {
 
     state.quitBreeze()
     for _ in 0..<50 where !didTerminate {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(didTerminate)
@@ -898,7 +898,7 @@ struct AppStateTests {
 
     state.quitBreeze()
     for _ in 0..<50 where state.isRestoringAutomaticControl {
-      try await Task.sleep(for: .milliseconds(10))
+      try await Task.sleep(nanoseconds: 10_000_000)
     }
 
     #expect(!didTerminate)

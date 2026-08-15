@@ -38,8 +38,9 @@ private enum DashboardSection: String, CaseIterable, Identifiable {
   }
 }
 
+@available(macOS 14.0, *)
 struct DashboardView: View {
-  let state: AppState
+  @ObservedObject var state: AppState
   @State private var selection: DashboardSection? = .overview
   @State private var isConfirmingHistoryClear = false
 
@@ -420,7 +421,10 @@ private struct DashboardCard<Content: View>: View {
   }
 }
 
-#Preview("Dashboard") {
-  DashboardView(state: .preview)
-    .frame(width: 900, height: 620)
+@available(macOS 14.0, *)
+private struct DashboardPreview: View {
+  var body: some View {
+    DashboardView(state: .preview)
+      .frame(width: 900, height: 620)
+  }
 }

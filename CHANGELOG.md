@@ -6,6 +6,10 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 
 ### Added
 
+- Apple Silicon-only macOS 12 Monterey compatibility, matching the factory OS generation of the 2021 M1 Pro MacBook Pro.
+- AppKit status-item and window compatibility paths for Monterey, including the existing fan controls and a native draggable curve editor without Swift Charts.
+- A fixed administrator-authorized Monterey Helper installer and remover with root ownership, launchd bootstrap, and the existing watchdog/XPC safety boundary.
+- Pre-Ventura XPC client signature validation using Security.framework process validation.
 - Opt-in CPU/GPU automatic fan curve with fixed preset stages and hysteresis.
 - English and Simplified Chinese interface using an Xcode String Catalog.
 - Fan Curve settings with current stage, control temperature, thresholds, and safety behavior.

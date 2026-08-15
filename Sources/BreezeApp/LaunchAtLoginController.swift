@@ -1,25 +1,33 @@
+import Combine
 import Foundation
-import Observation
 import ServiceManagement
 
 @MainActor
-@Observable
-final class LaunchAtLoginController {
-  private(set) var isEnabled = false
-  private(set) var requiresApproval = false
-  private(set) var errorMessage: String?
+final class LaunchAtLoginController: ObservableObject {
+  @Published private(set) var isEnabled = false
+  @Published private(set) var requiresApproval = false
+  @Published private(set) var errorMessage: String?
 
   init() {
     refresh()
   }
 
   func refresh() {
+    guard #available(macOS 13.0, *) else {
+      isEnabled = false
+      requiresApproval = false
+      return
+    }
     let status = SMAppService.mainApp.status
     isEnabled = status == .enabled
     requiresApproval = status == .requiresApproval
   }
 
   func setEnabled(_ enabled: Bool) {
+    guard #available(macOS 13.0, *) else {
+      errorMessage = "Launch at Login requires macOS Ventura or newer."
+      return
+    }
     do {
       if enabled {
         try SMAppService.mainApp.register()
@@ -34,6 +42,8 @@ final class LaunchAtLoginController {
   }
 
   func openSystemSettings() {
-    SMAppService.openSystemSettingsLoginItems()
+    if #available(macOS 13.0, *) {
+      SMAppService.openSystemSettingsLoginItems()
+    }
   }
 }

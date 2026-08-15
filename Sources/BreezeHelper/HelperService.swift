@@ -1,6 +1,7 @@
 import Foundation
 import OSLog
 import Darwin
+import Security
 
 #if canImport(BreezeIPC)
   import BreezeIPC
@@ -288,7 +289,17 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate {
       }
     }
     if let clientSigningRequirement {
-      connection.setCodeSigningRequirement(clientSigningRequirement)
+      if #available(macOS 13.0, *) {
+        connection.setCodeSigningRequirement(clientSigningRequirement)
+      } else if !Self.validateCodeSignature(
+        processIdentifier: connection.processIdentifier,
+        requirementText: clientSigningRequirement
+      ) {
+        logger.error(
+          "Rejected XPC client whose signature did not meet the Breeze requirement, pid=\(connection.processIdentifier, privacy: .public)"
+        )
+        return false
+      }
     }
     connection.exportedInterface = NSXPCInterface(with: BreezeHelperProtocol.self)
     connection.exportedObject = service
@@ -310,6 +321,25 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate {
     return URL(fileURLWithPath: String(decoding: pathBytes, as: UTF8.self))
       .resolvingSymlinksInPath()
       .standardizedFileURL
+  }
+
+  private static func validateCodeSignature(
+    processIdentifier: pid_t,
+    requirementText: String
+  ) -> Bool {
+    let attributes = [kSecGuestAttributePid as String: processIdentifier] as CFDictionary
+    var code: SecCode?
+    guard
+      SecCodeCopyGuestWithAttributes(nil, attributes, [], &code) == errSecSuccess,
+      let code
+    else { return false }
+
+    var requirement: SecRequirement?
+    guard
+      SecRequirementCreateWithString(requirementText as CFString, [], &requirement) == errSecSuccess,
+      let requirement
+    else { return false }
+    return SecCodeCheckValidity(code, [], requirement) == errSecSuccess
   }
 
   private static var bundledAppExecutableURL: URL? {
