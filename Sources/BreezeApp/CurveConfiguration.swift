@@ -176,6 +176,34 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
     guard minimum <= maximum else { return nil }
     return minimum...maximum
   }
+
+  mutating func movePoint(
+    id pointID: FanCurvePoint.ID,
+    temperature: Double,
+    fanPercent: Double
+  ) -> Bool {
+    guard let index = points.firstIndex(where: { $0.id == pointID }),
+      let temperatureRange = temperatureRange(for: pointID),
+      let fanPercentRange = fanPercentRange(for: pointID)
+    else { return false }
+
+    let boundedTemperature = min(
+      max(Int(temperature.rounded()), temperatureRange.lowerBound),
+      temperatureRange.upperBound)
+    let quantizedPercent = Int(
+      (fanPercent / Double(Self.percentageStep)).rounded()) * Self.percentageStep
+    let boundedPercent = min(
+      max(quantizedPercent, fanPercentRange.lowerBound),
+      fanPercentRange.upperBound)
+
+    guard points[index].temperature != boundedTemperature
+      || points[index].fanPercent != boundedPercent
+    else { return false }
+
+    points[index].temperature = boundedTemperature
+    points[index].fanPercent = boundedPercent
+    return isValid
+  }
 }
 
 struct FanCurveDecisionState: Equatable, Sendable {

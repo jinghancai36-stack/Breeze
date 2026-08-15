@@ -13,6 +13,7 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 - An on-demand Breeze dashboard window with Overview, Cooling, Curves, and Providers sections.
 - A bounded Quiet curve stage at 20% of each detected fan range.
 - A persistent 2–6 point custom curve editor with safe interpolated insertion, stable deletion, selectable CPU/GPU source, decrease hysteresis, and delay.
+- Direct chart-point dragging with safe temperature spacing, monotonic fan targets, and 5% quantization.
 - Persistent CPU/GPU temperature and per-fan RPM history charts retaining the latest 300 samples, with an explicit clear-history action.
 
 ### Safety

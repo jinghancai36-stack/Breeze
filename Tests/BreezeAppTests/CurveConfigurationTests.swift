@@ -87,6 +87,28 @@ struct CurveConfigurationTests {
       })
   }
 
+  @Test("Dragging a point stays quantized and inside neighboring bounds")
+  func movePoint() throws {
+    var configuration = FanCurveConfiguration.default
+    let pointID = configuration.points[1].id
+
+    let movedToUpperBounds = configuration.movePoint(
+      id: pointID, temperature: 200, fanPercent: 57)
+    #expect(movedToUpperBounds)
+    let point = try #require(configuration.points.first { $0.id == pointID })
+    #expect(point.temperature == 72)
+    #expect(point.fanPercent == 55)
+    #expect(configuration.isValid)
+
+    let movedToLowerBounds = configuration.movePoint(
+      id: pointID, temperature: 20, fanPercent: 99)
+    #expect(movedToLowerBounds)
+    let boundedPoint = try #require(configuration.points.first { $0.id == pointID })
+    #expect(boundedPoint.temperature == 53)
+    #expect(boundedPoint.fanPercent == 60)
+    #expect(configuration.isValid)
+  }
+
   @Test("Sensor source selects CPU, GPU, or their peak")
   func sensorSource() {
     let snapshot = HardwareSnapshot(

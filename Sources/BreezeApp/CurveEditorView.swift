@@ -5,6 +5,7 @@ struct CurveEditorView: View {
   let state: AppState
   @State private var draft: FanCurveConfiguration
   @State private var savedMessage: String?
+  @State private var draggedPointID: FanCurvePoint.ID?
 
   init(state: AppState) {
     self.state = state
@@ -121,34 +122,93 @@ struct CurveEditorView: View {
   }
 
   private var curveChart: some View {
-    Chart {
-      ForEach(draft.points) { point in
-        LineMark(
-          x: .value("Temperature", point.temperature),
-          y: .value("Fan", point.fanPercent))
-          .interpolationMethod(.linear)
-        PointMark(
-          x: .value("Temperature", point.temperature),
-          y: .value("Fan", point.fanPercent))
-          .symbolSize(70)
-      }
-      if let temperature = state.fanCurveTemperature {
-        RuleMark(x: .value("Current", temperature))
-          .foregroundStyle(.orange)
-          .lineStyle(StrokeStyle(lineWidth: 2, dash: [4, 4]))
-          .annotation(position: .top, alignment: .leading) {
-            Text("\(temperature.formatted(.number.precision(.fractionLength(1)))) °C")
-              .font(.caption)
-              .foregroundStyle(.secondary)
+    VStack(alignment: .leading, spacing: 6) {
+      Chart {
+        ForEach(draft.points) { point in
+          LineMark(
+            x: .value("Temperature", point.temperature),
+            y: .value("Fan", point.fanPercent))
+            .interpolationMethod(.linear)
+          PointMark(
+            x: .value("Temperature", point.temperature),
+            y: .value("Fan", point.fanPercent))
+            .symbolSize(point.id == draggedPointID ? 130 : 85)
+        }
+        if let temperature = state.fanCurveTemperature {
+          RuleMark(x: .value("Current", temperature))
+            .foregroundStyle(.orange)
+            .lineStyle(StrokeStyle(lineWidth: 2, dash: [4, 4]))
+            .annotation(position: .top, alignment: .leading) {
+              Text("\(temperature.formatted(.number.precision(.fractionLength(1)))) °C")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
           }
+        }
+      .chartXScale(
+        domain: FanCurveConfiguration.minimumTemperature...FanCurveConfiguration.maximumTemperature)
+      .chartYScale(
+        domain: FanCurveConfiguration.minimumFanPercent...FanCurveConfiguration.maximumFanPercent)
+      .chartXAxisLabel(L10n.text("curve.temperatureAxis", fallback: "Temperature (°C)"))
+      .chartYAxisLabel(L10n.text("curve.fanAxis", fallback: "Fan (%)"))
+      .chartOverlay { proxy in
+        GeometryReader { geometry in
+          Rectangle()
+            .fill(.clear)
+            .contentShape(Rectangle())
+            .gesture(
+              DragGesture(minimumDistance: 2)
+                .onChanged { value in
+                  dragCurvePoint(at: value.location, proxy: proxy, geometry: geometry)
+                }
+                .onEnded { _ in
+                  draggedPointID = nil
+                })
+            .allowsHitTesting(!state.isFanCurveEnabled)
+        }
       }
+      .frame(height: 230)
+
+      Label(
+        L10n.text(
+          "curve.dragHint",
+          fallback: "Drag a chart point to adjust temperature and fan speed."),
+        systemImage: "cursorarrow.motionlines")
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
-    .chartXScale(domain: FanCurveConfiguration.minimumTemperature...FanCurveConfiguration.maximumTemperature)
-    .chartYScale(domain: FanCurveConfiguration.minimumFanPercent...FanCurveConfiguration.maximumFanPercent)
-    .chartXAxisLabel(L10n.text("curve.temperatureAxis", fallback: "Temperature (°C)"))
-    .chartYAxisLabel(L10n.text("curve.fanAxis", fallback: "Fan (%)"))
-    .frame(height: 230)
     .padding(.vertical, 4)
+  }
+
+  private func dragCurvePoint(
+    at location: CGPoint,
+    proxy: ChartProxy,
+    geometry: GeometryProxy
+  ) {
+    guard let plotFrameAnchor = proxy.plotFrame else { return }
+    let plotFrame = geometry[plotFrameAnchor]
+    let plotLocation = CGPoint(
+      x: min(max(location.x, plotFrame.minX), plotFrame.maxX) - plotFrame.minX,
+      y: min(max(location.y, plotFrame.minY), plotFrame.maxY) - plotFrame.minY)
+
+    if draggedPointID == nil {
+      draggedPointID = nearestPointID(to: plotLocation, proxy: proxy)
+    }
+    guard let draggedPointID,
+      let values = proxy.value(at: plotLocation, as: (Double, Double).self),
+      draft.movePoint(id: draggedPointID, temperature: values.0, fanPercent: values.1)
+    else { return }
+    savedMessage = nil
+  }
+
+  private func nearestPointID(to location: CGPoint, proxy: ChartProxy) -> FanCurvePoint.ID? {
+    draft.points.compactMap { point -> (FanCurvePoint.ID, CGFloat)? in
+      guard let position = proxy.position(for: (x: point.temperature, y: point.fanPercent))
+      else { return nil }
+      return (point.id, hypot(position.x - location.x, position.y - location.y))
+    }
+    .min { $0.1 < $1.1 }
+    .flatMap { $0.1 <= 28 ? $0.0 : nil }
   }
 
   @ViewBuilder
