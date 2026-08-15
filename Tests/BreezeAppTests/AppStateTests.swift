@@ -515,8 +515,13 @@ struct AppStateTests {
 
   @Test("Sleep pauses polling and wake performs an immediate refresh")
   func sleepAndWake() async throws {
+    let suite = "BreezeSleepWakeHistoryTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
     let monitor = StubMonitor()
-    let state = AppState(monitor: monitor)
+    let state = AppState(
+      monitor: monitor,
+      thermalHistoryStore: ThermalHistoryStore(defaults: defaults))
     state.start()
     defer { state.stop() }
 
@@ -810,13 +815,17 @@ struct AppStateTests {
 
   @Test("Sleep requests Automatic and wake never resumes Manual")
   func sleepSafety() async throws {
+    let suite = "BreezeSleepSafetyHistoryTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
     let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
     let state = AppState(
       monitor: StubMonitor(controlVerified: true),
       helperInstaller: installer,
-      helperClient: client)
+      helperClient: client,
+      thermalHistoryStore: ThermalHistoryStore(defaults: defaults))
     state.start()
     defer { state.stop() }
     await state.refreshForTesting()
