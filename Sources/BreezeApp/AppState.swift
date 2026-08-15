@@ -53,11 +53,13 @@ final class AppState {
   @ObservationIgnored private let helperInstaller: any HelperInstalling
   @ObservationIgnored private let helperClient: any HelperCommunicating
   @ObservationIgnored private let curveConfigurationStore: CurveConfigurationStore
+  @ObservationIgnored private let thermalHistoryStore: ThermalHistoryStore
   @ObservationIgnored private let terminateApp: @MainActor () -> Void
   @ObservationIgnored private var pollingTask: Task<Void, Never>?
   @ObservationIgnored private var leaseHeartbeatTask: Task<Void, Never>?
   @ObservationIgnored private var controlRequestGeneration = 0
   @ObservationIgnored private var fanCurveDecisionState = FanCurveDecisionState()
+  @ObservationIgnored private var historySamplesSinceSave = 0
   @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
 
   init(
@@ -65,12 +67,15 @@ final class AppState {
     helperInstaller: any HelperInstalling = SystemHelperInstaller(),
     helperClient: any HelperCommunicating = HelperClient(),
     curveConfigurationStore: CurveConfigurationStore = CurveConfigurationStore(),
+    thermalHistoryStore: ThermalHistoryStore = ThermalHistoryStore(),
     terminateApp: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) }
   ) {
     self.helperInstaller = helperInstaller
     self.helperClient = helperClient
     self.curveConfigurationStore = curveConfigurationStore
+    self.thermalHistoryStore = thermalHistoryStore
     fanCurveConfiguration = curveConfigurationStore.load()
+    thermalHistory = thermalHistoryStore.load()
     self.terminateApp = terminateApp
     helperStatus = helperInstaller.status
     if let monitor {
@@ -90,6 +95,7 @@ final class AppState {
     helperInstaller = PreviewHelperInstaller()
     helperClient = PreviewHelperClient()
     curveConfigurationStore = CurveConfigurationStore()
+    thermalHistoryStore = ThermalHistoryStore()
     fanCurveConfiguration = .default
     terminateApp = {}
     helperStatus = .enabled
@@ -114,6 +120,7 @@ final class AppState {
     pollingTask?.cancel()
     pollingTask = nil
     stopLeaseHeartbeat()
+    persistThermalHistory()
     let center = NSWorkspace.shared.notificationCenter
     workspaceObservers.forEach(center.removeObserver)
     workspaceObservers.removeAll()
@@ -692,6 +699,12 @@ final class AppState {
     _ = saveFanCurveConfiguration(.default)
   }
 
+  func clearThermalHistory() {
+    thermalHistory.removeAll()
+    historySamplesSinceSave = 0
+    thermalHistoryStore.clear()
+  }
+
   private func curveStage(for percent: Int) -> FanCurveStage {
     switch percent {
     case ...30: .quiet
@@ -708,8 +721,17 @@ final class AppState {
         cpuTemperature: snapshot.hottestTemperature(in: .cpu)?.temperature,
         gpuTemperature: snapshot.hottestTemperature(in: .gpu)?.temperature,
         fanRPMs: snapshot.fans.map(\.currentRPM)))
-    if thermalHistory.count > 300 {
-      thermalHistory.removeFirst(thermalHistory.count - 300)
+    if thermalHistory.count > ThermalHistoryStore.maximumSamples {
+      thermalHistory.removeFirst(thermalHistory.count - ThermalHistoryStore.maximumSamples)
+    }
+    historySamplesSinceSave += 1
+    if historySamplesSinceSave >= 10 { persistThermalHistory() }
+  }
+
+  private func persistThermalHistory() {
+    guard historySamplesSinceSave > 0 else { return }
+    if thermalHistoryStore.save(thermalHistory) {
+      historySamplesSinceSave = 0
     }
   }
 }

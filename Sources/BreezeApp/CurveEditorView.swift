@@ -48,8 +48,23 @@ struct CurveEditorView: View {
       .disabled(state.isFanCurveEnabled)
 
       VStack(spacing: 12) {
-        ForEach(draft.points.indices, id: \.self) { index in
-          curvePointRow(index: index)
+        HStack {
+          Text(
+            L10n.format(
+              "curve.pointCount", fallback: "%d curve points", draft.points.count))
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(.secondary)
+          Spacer()
+          Button {
+            if draft.addInterpolatedPoint() { savedMessage = nil }
+          } label: {
+            Label(L10n.text("action.addPoint", fallback: "Add Point"), systemImage: "plus")
+          }
+          .disabled(state.isFanCurveEnabled || !canAddPoint)
+        }
+
+        ForEach(Array(draft.points.enumerated()), id: \.element.id) { index, point in
+          curvePointRow(index: index, pointID: point.id)
         }
       }
 
@@ -136,7 +151,7 @@ struct CurveEditorView: View {
     .padding(.vertical, 4)
   }
 
-  private func curvePointRow(index: Int) -> some View {
+  private func curvePointRow(index: Int, pointID: FanCurvePoint.ID) -> some View {
     let point = draft.points[index]
     return Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
       GridRow {
@@ -157,9 +172,22 @@ struct CurveEditorView: View {
         Text("\(point.fanPercent)%")
           .monospacedDigit()
           .frame(width: 42, alignment: .trailing)
+        Button {
+          if draft.removePoint(id: pointID) { savedMessage = nil }
+        } label: {
+          Image(systemName: "minus.circle")
+        }
+        .buttonStyle(.borderless)
+        .help(L10n.text("action.removePoint", fallback: "Remove Point"))
+        .disabled(draft.points.count <= FanCurveConfiguration.minimumPointCount)
       }
     }
     .disabled(state.isFanCurveEnabled)
+  }
+
+  private var canAddPoint: Bool {
+    var candidate = draft
+    return candidate.addInterpolatedPoint()
   }
 
   private func temperatureBinding(_ index: Int) -> Binding<Double> {

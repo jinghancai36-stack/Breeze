@@ -192,6 +192,13 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - Developer diagnostic: `--helper-curve <20...100, step 5>`
 - Automated and supported-hardware results are recorded in [Milestone 12 Validation](docs/VALIDATION_M12.md)
 
+### Milestone 13 — Dynamic points and persistent history
+
+- Curves support 2–6 points with stable identities and safe add/remove controls
+- New points are inserted into the largest available temperature span and inherit the existing interpolated 5% target
+- The latest 300 CPU/GPU and per-fan RPM samples persist across app restarts
+- History is validated on restore, saved in batches to limit disk writes, and can be explicitly cleared from the Overview page
+
 ## Safety
 
 Breeze uses undocumented/private hardware interfaces. Availability varies between Mac models and macOS versions. The helper runs as root only after explicit macOS approval. Manual control is restricted to a per-model and per-fan whitelist and never bypasses detected RPM bounds. A Helper-owned lease restores Automatic when the controlling GUI disappears; explicit Automatic and Quit remain the preferred release paths.

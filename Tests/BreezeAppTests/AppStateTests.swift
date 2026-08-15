@@ -260,9 +260,14 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
 @MainActor
 struct AppStateTests {
   @Test("A refresh publishes a complete snapshot")
-  func refresh() async {
+  func refresh() async throws {
+    let suite = "BreezeRefreshHistoryTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
     let monitor = StubMonitor()
-    let state = AppState(monitor: monitor)
+    let state = AppState(
+      monitor: monitor,
+      thermalHistoryStore: ThermalHistoryStore(defaults: defaults))
 
     await state.refreshForTesting()
 
@@ -281,6 +286,28 @@ struct AppStateTests {
     #expect(state.isPopoverVisible)
     state.setPopoverVisible(false)
     #expect(!state.isPopoverVisible)
+  }
+
+  @Test("History restores at launch, saves in batches, and clears")
+  func historyLifecycle() async throws {
+    let suite = "BreezeAppStateHistoryTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = ThermalHistoryStore(defaults: defaults)
+    let existing = ThermalHistorySample(
+      id: Date(timeIntervalSinceReferenceDate: 100),
+      cpuTemperature: 55, gpuTemperature: 52, fanRPMs: [2_000, 2_100])
+    #expect(store.save([existing]))
+
+    let state = AppState(monitor: StubMonitor(), thermalHistoryStore: store)
+    #expect(state.thermalHistory == [existing])
+
+    for _ in 0..<10 { await state.refreshForTesting() }
+    #expect(store.load().count == 11)
+
+    state.clearThermalHistory()
+    #expect(state.thermalHistory.isEmpty)
+    #expect(store.load().isEmpty)
   }
 
   @Test("A temporary read failure preserves the last good snapshot")

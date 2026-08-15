@@ -38,6 +38,38 @@ struct CurveConfigurationTests {
     #expect(!configuration.isValid)
   }
 
+  @Test("Curve points can be safely added and removed within the limits")
+  func pointEditing() throws {
+    var configuration = FanCurveConfiguration.default
+
+    let addedFifthPoint = configuration.addInterpolatedPoint()
+    #expect(addedFifthPoint)
+    #expect(configuration.points.count == 5)
+    #expect(configuration.isValid)
+    #expect(Set(configuration.points.map(\.id)).count == configuration.points.count)
+
+    let addedSixthPoint = configuration.addInterpolatedPoint()
+    #expect(addedSixthPoint)
+    #expect(configuration.points.count == FanCurveConfiguration.maximumPointCount)
+    let addedSeventhPoint = configuration.addInterpolatedPoint()
+    #expect(!addedSeventhPoint)
+
+    let removableID = try #require(configuration.points.dropFirst().first?.id)
+    let removedPoint = configuration.removePoint(id: removableID)
+    #expect(removedPoint)
+    #expect(configuration.isValid)
+
+    while configuration.points.count > FanCurveConfiguration.minimumPointCount {
+      let nextID = configuration.points[1].id
+      let removedNextPoint = configuration.removePoint(id: nextID)
+      #expect(removedNextPoint)
+    }
+    let minimumPointID = configuration.points[0].id
+    let removedBelowMinimum = configuration.removePoint(id: minimumPointID)
+    #expect(!removedBelowMinimum)
+    #expect(configuration.isValid)
+  }
+
   @Test("Sensor source selects CPU, GPU, or their peak")
   func sensorSource() {
     let snapshot = HardwareSnapshot(
@@ -98,5 +130,48 @@ struct CurveConfigurationTests {
 
     defaults.set(Data("not-json".utf8), forKey: "fanCurveConfiguration.v1")
     #expect(store.load() == .default)
+  }
+
+  @Test("Thermal history persists in order, stays bounded, and can be cleared")
+  func thermalHistoryPersistence() throws {
+    let suite = "BreezeHistoryTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = ThermalHistoryStore(defaults: defaults)
+    var samples: [ThermalHistorySample] = []
+    for index in 0..<305 {
+      let offset = Double(index)
+      samples.append(
+        ThermalHistorySample(
+          id: Date(timeIntervalSinceReferenceDate: offset),
+          cpuTemperature: 50 + Double(index % 10),
+          gpuTemperature: 48 + Double(index % 8),
+          fanRPMs: [2_000 + offset, 2_100 + offset]))
+    }
+
+    #expect(store.save(samples))
+    let restored = store.load()
+    #expect(restored.count == ThermalHistoryStore.maximumSamples)
+    #expect(restored.first?.id == samples[5].id)
+    #expect(restored.last?.id == samples.last?.id)
+
+    store.clear()
+    #expect(store.load().isEmpty)
+  }
+
+  @Test("Invalid thermal history data falls back safely")
+  func invalidThermalHistory() throws {
+    let suite = "BreezeHistoryFallbackTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = ThermalHistoryStore(defaults: defaults)
+
+    defaults.set(Data("not-json".utf8), forKey: "thermalHistory.v1")
+    #expect(store.load().isEmpty)
+
+    let invalid = ThermalHistorySample(
+      id: Date(), cpuTemperature: 500, gpuTemperature: nil, fanRPMs: [2_000])
+    #expect(store.save([invalid]))
+    #expect(store.load().isEmpty)
   }
 }

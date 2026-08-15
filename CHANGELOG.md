@@ -12,8 +12,8 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 - A native macOS application icon with a cool-blue five-blade fan mark.
 - An on-demand Breeze dashboard window with Overview, Cooling, Curves, and Providers sections.
 - A bounded Quiet curve stage at 20% of each detected fan range.
-- A persistent four-point custom curve editor with selectable CPU/GPU source, interpolation preview, decrease hysteresis, and delay.
-- In-memory CPU/GPU temperature and per-fan RPM history charts in the Breeze window.
+- A persistent 2–6 point custom curve editor with safe interpolated insertion, stable deletion, selectable CPU/GPU source, decrease hysteresis, and delay.
+- Persistent CPU/GPU temperature and per-fan RPM history charts retaining the latest 300 samples, with an explicit clear-history action.
 
 ### Safety
 

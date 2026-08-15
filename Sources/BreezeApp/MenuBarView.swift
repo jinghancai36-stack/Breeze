@@ -219,9 +219,10 @@ struct MenuBarView: View {
           Text(L10n.text("curve.title", fallback: "Automatic Curve"))
             .font(.caption.weight(.semibold))
           Text(
-            L10n.text(
+            L10n.format(
               "curve.summary",
-              fallback: "CPU/GPU peak · Quiet · 60° Balanced · 75° Cool · 88° Max")
+              fallback: "%d saved points · interpolated in 5%% steps",
+              state.fanCurveConfiguration.points.count)
           )
           .font(.caption2)
           .foregroundStyle(.secondary)

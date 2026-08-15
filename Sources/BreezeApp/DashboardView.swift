@@ -41,6 +41,7 @@ private enum DashboardSection: String, CaseIterable, Identifiable {
 struct DashboardView: View {
   let state: AppState
   @State private var selection: DashboardSection? = .overview
+  @State private var isConfirmingHistoryClear = false
 
   var body: some View {
     NavigationSplitView {
@@ -64,6 +65,20 @@ struct DashboardView: View {
     }
     .frame(minWidth: 820, minHeight: 560)
     .onAppear { state.refreshNow() }
+    .confirmationDialog(
+      L10n.text("dashboard.clearHistoryTitle", fallback: "Clear monitoring history?"),
+      isPresented: $isConfirmingHistoryClear
+    ) {
+      Button(L10n.text("action.clearHistory", fallback: "Clear History"), role: .destructive) {
+        state.clearThermalHistory()
+      }
+      Button(L10n.text("action.cancel", fallback: "Cancel"), role: .cancel) {}
+    } message: {
+      Text(
+        L10n.text(
+          "dashboard.clearHistoryBody",
+          fallback: "Saved temperature and fan-speed samples will be permanently removed."))
+    }
   }
 
   private var overview: some View {
@@ -93,6 +108,19 @@ struct DashboardView: View {
             title: L10n.text("dashboard.thermalHistory", fallback: "Thermal History"),
             systemImage: "chart.line.uptrend.xyaxis"
           ) {
+            HStack {
+              Text(
+                L10n.format(
+                  "dashboard.historySampleCount", fallback: "%d saved samples",
+                  state.thermalHistory.count))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+              Spacer()
+              Button(L10n.text("action.clearHistory", fallback: "Clear History")) {
+                isConfirmingHistoryClear = true
+              }
+              .disabled(state.thermalHistory.isEmpty)
+            }
             if state.thermalHistory.count >= 2 {
               ThermalHistoryChart(samples: state.thermalHistory)
             } else {
@@ -233,7 +261,7 @@ struct DashboardView: View {
         dashboardHeader(
           title: L10n.text("dashboard.curves", fallback: "Curves"),
           subtitle: L10n.text(
-            "dashboard.curvesSubtitle", fallback: "Automatic stages and response behavior"))
+            "dashboard.curvesSubtitle", fallback: "Custom points and response behavior"))
 
         DashboardCard(
           title: L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor"),
