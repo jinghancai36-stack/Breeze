@@ -21,6 +21,11 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 - Curve disable, app quit, sleep, missing temperature data, Helper failure, and watchdog loss still restore Apple Automatic.
 - Custom targets are restricted to 20%–100% in 5% steps; the Helper independently converts them to verified per-fan RPM ranges as one transaction.
 
+### Fixed
+
+- Prevented the curve editor from crashing when an inserted point creates a temporarily fixed, zero-width slider range.
+- Curve point controls now resolve their current position by stable identity after points are inserted or removed.
+
 ### Planned
 
 - Developer ID signing, notarization, and clean-Mac installation testing when the required Apple account is available.

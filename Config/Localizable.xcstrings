@@ -51,6 +51,7 @@
     "curve.editorSubtitle" : { "localizations" : { "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "目标值通过线性插值计算，并量化为安全的 5% 步进。" } } } },
     "curve.editorTitle" : { "localizations" : { "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自定义曲线" } } } },
     "curve.fanAxis" : { "localizations" : { "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "风扇（%）" } } } },
+    "curve.fixedByNeighbors" : { "localizations" : { "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "调整相邻节点后即可修改此值。" } } } },
     "curve.hysteresis" : { "localizations" : { "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "升速目标立即生效；降速使用已保存的回差与延迟，避免频繁切换。请在 Breeze 实体窗口中编辑曲线。" } } } },
     "curve.hysteresisLabel" : { "localizations" : { "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "降速回差" } } } },
     "curve.invalid" : { "localizations" : { "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "曲线设置无效" } } } },

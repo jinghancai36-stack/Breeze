@@ -47,10 +47,12 @@ struct CurveConfigurationTests {
     #expect(configuration.points.count == 5)
     #expect(configuration.isValid)
     #expect(Set(configuration.points.map(\.id)).count == configuration.points.count)
+    try verifyEditorRanges(configuration)
 
     let addedSixthPoint = configuration.addInterpolatedPoint()
     #expect(addedSixthPoint)
     #expect(configuration.points.count == FanCurveConfiguration.maximumPointCount)
+    try verifyEditorRanges(configuration)
     let addedSeventhPoint = configuration.addInterpolatedPoint()
     #expect(!addedSeventhPoint)
 
@@ -68,6 +70,21 @@ struct CurveConfigurationTests {
     let removedBelowMinimum = configuration.removePoint(id: minimumPointID)
     #expect(!removedBelowMinimum)
     #expect(configuration.isValid)
+  }
+
+  @Test("Flat curve segments expose safe zero-width editor ranges")
+  func flatEditorRanges() throws {
+    var configuration = FanCurveConfiguration.default
+    configuration.points[1].fanPercent = configuration.points[0].fanPercent
+    #expect(configuration.isValid)
+    let addedPoint = configuration.addInterpolatedPoint()
+    #expect(addedPoint)
+    try verifyEditorRanges(configuration)
+    #expect(
+      configuration.points.contains { point in
+        guard let range = configuration.fanPercentRange(for: point.id) else { return false }
+        return range.lowerBound == range.upperBound
+      })
   }
 
   @Test("Sensor source selects CPU, GPU, or their peak")
@@ -173,5 +190,14 @@ struct CurveConfigurationTests {
       id: Date(), cpuTemperature: 500, gpuTemperature: nil, fanRPMs: [2_000])
     #expect(store.save([invalid]))
     #expect(store.load().isEmpty)
+  }
+
+  private func verifyEditorRanges(_ configuration: FanCurveConfiguration) throws {
+    for point in configuration.points {
+      let temperatureRange = try #require(configuration.temperatureRange(for: point.id))
+      let fanPercentRange = try #require(configuration.fanPercentRange(for: point.id))
+      #expect(temperatureRange.contains(point.temperature))
+      #expect(fanPercentRange.contains(point.fanPercent))
+    }
   }
 }

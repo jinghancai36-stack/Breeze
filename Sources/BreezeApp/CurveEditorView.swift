@@ -63,8 +63,8 @@ struct CurveEditorView: View {
           .disabled(state.isFanCurveEnabled || !canAddPoint)
         }
 
-        ForEach(Array(draft.points.enumerated()), id: \.element.id) { index, point in
-          curvePointRow(index: index, pointID: point.id)
+        ForEach(draft.points) { point in
+          curvePointRow(pointID: point.id)
         }
       }
 
@@ -151,38 +151,47 @@ struct CurveEditorView: View {
     .padding(.vertical, 4)
   }
 
-  private func curvePointRow(index: Int, pointID: FanCurvePoint.ID) -> some View {
-    let point = draft.points[index]
-    return Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
-      GridRow {
-        Text(
-          L10n.format("curve.pointNumber", fallback: "Point %d", index + 1))
-          .fontWeight(.medium)
-          .frame(width: 58, alignment: .leading)
-        Slider(
-          value: temperatureBinding(index),
-          in: temperatureRange(index), step: 1)
-        Text("\(point.temperature) °C")
-          .monospacedDigit()
-          .frame(width: 48, alignment: .trailing)
-        Slider(
-          value: percentBinding(index),
-          in: percentRange(index),
-          step: Double(FanCurveConfiguration.percentageStep))
-        Text("\(point.fanPercent)%")
-          .monospacedDigit()
-          .frame(width: 42, alignment: .trailing)
-        Button {
-          if draft.removePoint(id: pointID) { savedMessage = nil }
-        } label: {
-          Image(systemName: "minus.circle")
+  @ViewBuilder
+  private func curvePointRow(pointID: FanCurvePoint.ID) -> some View {
+    if let index = draft.points.firstIndex(where: { $0.id == pointID }),
+      let temperatureRange = draft.temperatureRange(for: pointID),
+      let percentRange = draft.fanPercentRange(for: pointID)
+    {
+      let point = draft.points[index]
+      Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
+        GridRow {
+          Text(
+            L10n.format("curve.pointNumber", fallback: "Point %d", index + 1))
+            .fontWeight(.medium)
+            .frame(width: 58, alignment: .leading)
+          safeSlider(
+            value: temperatureBinding(pointID),
+            range: temperatureRange,
+            fallbackRange: FanCurveConfiguration.minimumTemperature...FanCurveConfiguration.maximumTemperature,
+            step: 1)
+          Text("\(point.temperature) °C")
+            .monospacedDigit()
+            .frame(width: 48, alignment: .trailing)
+          safeSlider(
+            value: percentBinding(pointID),
+            range: percentRange,
+            fallbackRange: FanCurveConfiguration.minimumFanPercent...FanCurveConfiguration.maximumFanPercent,
+            step: FanCurveConfiguration.percentageStep)
+          Text("\(point.fanPercent)%")
+            .monospacedDigit()
+            .frame(width: 42, alignment: .trailing)
+          Button {
+            if draft.removePoint(id: pointID) { savedMessage = nil }
+          } label: {
+            Image(systemName: "minus.circle")
+          }
+          .buttonStyle(.borderless)
+          .help(L10n.text("action.removePoint", fallback: "Remove Point"))
+          .disabled(draft.points.count <= FanCurveConfiguration.minimumPointCount)
         }
-        .buttonStyle(.borderless)
-        .help(L10n.text("action.removePoint", fallback: "Remove Point"))
-        .disabled(draft.points.count <= FanCurveConfiguration.minimumPointCount)
       }
+      .disabled(state.isFanCurveEnabled)
     }
-    .disabled(state.isFanCurveEnabled)
   }
 
   private var canAddPoint: Bool {
@@ -190,22 +199,53 @@ struct CurveEditorView: View {
     return candidate.addInterpolatedPoint()
   }
 
-  private func temperatureBinding(_ index: Int) -> Binding<Double> {
+  private func temperatureBinding(_ pointID: FanCurvePoint.ID) -> Binding<Double> {
     Binding(
-      get: { Double(draft.points[index].temperature) },
+      get: {
+        Double(draft.points.first(where: { $0.id == pointID })?.temperature ?? 0)
+      },
       set: {
+        guard let index = draft.points.firstIndex(where: { $0.id == pointID }) else { return }
         draft.points[index].temperature = Int($0.rounded())
         savedMessage = nil
       })
   }
 
-  private func percentBinding(_ index: Int) -> Binding<Double> {
+  private func percentBinding(_ pointID: FanCurvePoint.ID) -> Binding<Double> {
     Binding(
-      get: { Double(draft.points[index].fanPercent) },
+      get: {
+        Double(draft.points.first(where: { $0.id == pointID })?.fanPercent ?? 0)
+      },
       set: {
+        guard let index = draft.points.firstIndex(where: { $0.id == pointID }) else { return }
         draft.points[index].fanPercent = Int($0.rounded())
         savedMessage = nil
       })
+  }
+
+  @ViewBuilder
+  private func safeSlider(
+    value: Binding<Double>,
+    range: ClosedRange<Int>,
+    fallbackRange: ClosedRange<Int>,
+    step: Int
+  ) -> some View {
+    if range.lowerBound < range.upperBound {
+      Slider(
+        value: value,
+        in: Double(range.lowerBound)...Double(range.upperBound),
+        step: Double(step))
+    } else {
+      Slider(
+        value: .constant(value.wrappedValue),
+        in: Double(fallbackRange.lowerBound)...Double(fallbackRange.upperBound),
+        step: Double(step))
+        .disabled(true)
+        .help(
+          L10n.text(
+            "curve.fixedByNeighbors",
+            fallback: "Adjust a neighboring point to unlock this value."))
+    }
   }
 
   private var hysteresisBinding: Binding<Double> {
@@ -218,26 +258,6 @@ struct CurveEditorView: View {
     Binding(
       get: { draft.decreaseDelaySeconds },
       set: { draft.decreaseDelaySeconds = $0; savedMessage = nil })
-  }
-
-  private func temperatureRange(_ index: Int) -> ClosedRange<Double> {
-    let minimum = index == 0
-      ? FanCurveConfiguration.minimumTemperature
-      : draft.points[index - 1].temperature + FanCurveConfiguration.minimumPointSpacing
-    let maximum = index == draft.points.count - 1
-      ? FanCurveConfiguration.maximumTemperature
-      : draft.points[index + 1].temperature - FanCurveConfiguration.minimumPointSpacing
-    return Double(minimum)...Double(maximum)
-  }
-
-  private func percentRange(_ index: Int) -> ClosedRange<Double> {
-    let minimum = index == 0
-      ? FanCurveConfiguration.minimumFanPercent
-      : draft.points[index - 1].fanPercent
-    let maximum = index == draft.points.count - 1
-      ? FanCurveConfiguration.maximumFanPercent
-      : draft.points[index + 1].fanPercent
-    return Double(minimum)...Double(maximum)
   }
 
   private func sensorTitle(_ source: CurveSensorSource) -> String {

@@ -155,6 +155,27 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
     }
     return true
   }
+
+  func temperatureRange(for pointID: FanCurvePoint.ID) -> ClosedRange<Int>? {
+    guard let index = points.firstIndex(where: { $0.id == pointID }) else { return nil }
+    let minimum = index == 0
+      ? Self.minimumTemperature
+      : points[index - 1].temperature + Self.minimumPointSpacing
+    let maximum = index == points.count - 1
+      ? Self.maximumTemperature
+      : points[index + 1].temperature - Self.minimumPointSpacing
+    guard minimum <= maximum else { return nil }
+    return minimum...maximum
+  }
+
+  func fanPercentRange(for pointID: FanCurvePoint.ID) -> ClosedRange<Int>? {
+    guard let index = points.firstIndex(where: { $0.id == pointID }) else { return nil }
+    let minimum = index == 0 ? Self.minimumFanPercent : points[index - 1].fanPercent
+    let maximum = index == points.count - 1
+      ? Self.maximumFanPercent : points[index + 1].fanPercent
+    guard minimum <= maximum else { return nil }
+    return minimum...maximum
+  }
 }
 
 struct FanCurveDecisionState: Equatable, Sendable {
