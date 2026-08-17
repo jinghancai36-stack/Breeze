@@ -46,6 +46,7 @@
 		A00000000000000000000026 /* MontereyDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* MontereyDashboardView.swift */; };
 		A00000000000000000000027 /* MontereySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000027 /* MontereySettingsView.swift */; };
 		A00000000000000000000028 /* LegacyHelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* LegacyHelperInstaller.swift */; };
+		A00000000000000000000029 /* HardwareDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* HardwareDiagnostics.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -120,6 +121,7 @@
 		B00000000000000000000026 /* MontereyDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontereyDashboardView.swift; sourceTree = "<group>"; };
 		B00000000000000000000027 /* MontereySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontereySettingsView.swift; sourceTree = "<group>"; };
 		B00000000000000000000028 /* LegacyHelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyHelperInstaller.swift; sourceTree = "<group>"; };
+		B00000000000000000000029 /* HardwareDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDiagnostics.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -178,6 +180,7 @@
 				B00000000000000000000026 /* MontereyDashboardView.swift */,
 				B00000000000000000000027 /* MontereySettingsView.swift */,
 				B00000000000000000000028 /* LegacyHelperInstaller.swift */,
+				B00000000000000000000029 /* HardwareDiagnostics.swift */,
 			);
 			path = BreezeApp;
 			sourceTree = "<group>";
@@ -316,6 +319,7 @@
 				A00000000000000000000026 /* MontereyDashboardView.swift in Sources */,
 				A00000000000000000000027 /* MontereySettingsView.swift in Sources */,
 				A00000000000000000000028 /* LegacyHelperInstaller.swift in Sources */,
+				A00000000000000000000029 /* HardwareDiagnostics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

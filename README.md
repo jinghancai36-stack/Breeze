@@ -199,6 +199,12 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - The latest 300 CPU/GPU and per-fan RPM samples persist across app restarts
 - History is validated on restore, saved in batches to limit disk writes, and can be explicitly cleared from the Overview page
 
+### Hardware model feedback
+
+Open **Settings → Hardware → Export Diagnostic Report…** to save a structured JSON report, then choose **Open Model Feedback** to attach it to the matching GitHub issue form. The exporter includes Breeze/macOS versions, model and chip details, fan readings and ranges, temperature sensors, Helper state, and curve configuration. It deliberately excludes serial numbers, hostnames, usernames, filesystem paths, logs, credentials, certificates, and signing identities.
+
+Diagnostic reports are read-only evidence. They do not enable fan writes or bypass the verified-model whitelist.
+
 ## Safety
 
 Breeze uses undocumented/private hardware interfaces. Availability varies between Mac models and macOS versions. The helper runs as root only after explicit macOS approval. Manual control is restricted to a per-model and per-fan whitelist and never bypasses detected RPM bounds. A Helper-owned lease restores Automatic when the controlling GUI disappears; explicit Automatic and Quit remain the preferred release paths.

@@ -224,6 +224,10 @@ struct SettingsView: View {
         ContentUnavailableView(
           L10n.text("hardware.unavailable", fallback: "Hardware unavailable"), systemImage: "cpu")
       }
+
+      Section(L10n.text("diagnostics.title", fallback: "Hardware Diagnostics")) {
+        DiagnosticReportActionsView(state: state)
+      }
     }
     .formStyle(.grouped)
     .padding()

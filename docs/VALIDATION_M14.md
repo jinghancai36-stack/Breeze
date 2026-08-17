@@ -5,7 +5,7 @@ Validation target: Apple Silicon only, with `MacBookPro18,3` as the sole write-e
 ## Automated evidence
 
 - Swift Package Debug build targets `arm64-apple-macos12.0`.
-- All 84 hardware, curve, watchdog, Helper, XPC, and app-state tests pass.
+- All 86 hardware, diagnostic-export, curve, watchdog, Helper, XPC, and app-state tests pass.
 - The Xcode app and embedded Helper both build with deployment target 12.0.
 - `LC_BUILD_VERSION` reports `minos 12.0` for both executables.
 - `LSMinimumSystemVersion` is 12.0.

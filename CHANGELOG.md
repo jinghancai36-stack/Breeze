@@ -6,6 +6,7 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 
 ### Added
 
+- Privacy-bounded hardware diagnostic JSON export and a matching GitHub Apple Silicon model-feedback template.
 - Apple Silicon-only macOS 12 Monterey compatibility, matching the factory OS generation of the 2021 M1 Pro MacBook Pro.
 - AppKit status-item and window compatibility paths for Monterey, including the existing fan controls and a native draggable curve editor without Swift Charts.
 - A fixed administrator-authorized Monterey Helper installer and remover with root ownership, launchd bootstrap, and the existing watchdog/XPC safety boundary.

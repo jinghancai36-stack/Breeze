@@ -33,9 +33,10 @@ struct MontereySettingsView: View {
             Text(
               L10n.text(
                 "curve.safetyBody",
-                fallback: "Every curve target remains protected by the Breeze watchdog."))
-              .font(.caption)
-              .foregroundStyle(.secondary)
+                fallback: "Every curve target remains protected by the Breeze watchdog.")
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
           }
           .padding(8)
         }
@@ -67,6 +68,11 @@ struct MontereySettingsView: View {
           .padding(8)
         }
 
+        GroupBox(label: Text(L10n.text("diagnostics.title", fallback: "Hardware Diagnostics"))) {
+          DiagnosticReportActionsView(state: state)
+            .padding(8)
+        }
+
         Text("Breeze \(appVersion) · macOS 12.0+ · Apple Silicon")
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -79,12 +85,14 @@ struct MontereySettingsView: View {
     switch state.helperStatus {
     case .notRegistered: return L10n.text("helper.notInstalled", fallback: "Not installed")
     case .enabled: return L10n.text("helper.enabled", fallback: "Enabled")
-    case .requiresApproval: return L10n.text("helper.approvalRequired", fallback: "Approval required")
+    case .requiresApproval:
+      return L10n.text("helper.approvalRequired", fallback: "Approval required")
     case .notFound: return L10n.text("helper.missing", fallback: "Helper missing from app bundle")
     }
   }
 
   private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+      ?? "Development"
   }
 }
