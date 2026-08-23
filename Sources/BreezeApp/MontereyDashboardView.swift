@@ -36,61 +36,100 @@ private struct MontereyCurveEditor: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
       VStack(alignment: .leading, spacing: 3) {
-        Text(L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor"))
-          .font(.title2.bold())
         Text(
-          L10n.text(
-            "curve.dragHint",
-            fallback: "Drag a chart point to adjust temperature and fan speed."))
-          .font(.caption)
-          .foregroundStyle(.secondary)
+          state.fanCurveMode == .automatic
+            ? L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C")
+            : L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor")
+        )
+        .font(.title2.bold())
+        Text(
+          state.fanCurveMode == .automatic
+            ? L10n.text(
+              "curve.automaticShort",
+              fallback: "Fan speed follows temperature automatically; no points need editing.")
+            : L10n.text(
+              "curve.dragHint",
+              fallback: "Drag a chart point to adjust temperature and fan speed.")
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
       }
+
+      Picker(
+        L10n.text("curve.profile", fallback: "Control profile"),
+        selection: Binding(
+          get: { state.fanCurveMode },
+          set: { state.setFanCurveMode($0) })
+      ) {
+        Text(L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C"))
+          .tag(FanCurveMode.automatic)
+        Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
+          .tag(FanCurveMode.custom)
+      }
+      .pickerStyle(.segmented)
+      .disabled(state.isFanCurveEnabled)
 
       MontereyCurveGraph(
-        configuration: $draft,
+        configuration: displayConfiguration,
         currentTemperature: state.fanCurveTemperature,
-        isEditingDisabled: state.isFanCurveEnabled,
-        didEdit: { message = nil })
-        .frame(height: 270)
+        isEditingDisabled: state.isFanCurveEnabled || state.fanCurveMode == .automatic,
+        didEdit: { message = nil }
+      )
+      .frame(height: 270)
 
-      ForEach(Array(draft.points.enumerated()), id: \.element.id) { index, point in
-        HStack {
-          Text(L10n.format("curve.pointNumber", fallback: "Point %d", index + 1))
-          Spacer()
-          Text("\(point.temperature) °C").monospacedDigit()
-          Text("\(point.fanPercent)%")
-            .monospacedDigit()
-            .frame(width: 48, alignment: .trailing)
-          Button {
-            if draft.removePoint(id: point.id) { message = nil }
-          } label: {
-            Image(systemName: "minus.circle")
+      if state.fanCurveMode == .automatic {
+        Text(
+          L10n.text(
+            "curve.automaticDescription",
+            fallback:
+              "Breeze continuously maps the hotter CPU/GPU temperature from 45°C at 20% to 90°C at 100%, in safe 5% steps. Rising temperatures apply immediately; decreases use a 2°C hysteresis and 3-second delay."
+          )
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      } else {
+        ForEach(Array(draft.points.enumerated()), id: \.element.id) { index, point in
+          HStack {
+            Text(L10n.format("curve.pointNumber", fallback: "Point %d", index + 1))
+            Spacer()
+            Text("\(point.temperature) °C").monospacedDigit()
+            Text("\(point.fanPercent)%")
+              .monospacedDigit()
+              .frame(width: 48, alignment: .trailing)
+            Button {
+              if draft.removePoint(id: point.id) { message = nil }
+            } label: {
+              Image(systemName: "minus.circle")
+            }
+            .buttonStyle(.borderless)
+            .disabled(
+              state.isFanCurveEnabled
+                || draft.points.count <= FanCurveConfiguration.minimumPointCount)
           }
-          .buttonStyle(.borderless)
+        }
+
+        HStack {
+          Button(L10n.text("action.addPoint", fallback: "Add Point")) {
+            if draft.addInterpolatedPoint() { message = nil }
+          }
+          .disabled(state.isFanCurveEnabled || !canAddPoint)
+
+          Button(L10n.text("action.saveCurve", fallback: "Save Curve")) {
+            message =
+              state.saveFanCurveConfiguration(draft)
+              ? L10n.text("curve.saved", fallback: "Curve saved")
+              : L10n.text("curve.invalid", fallback: "Curve settings are invalid")
+          }
           .disabled(
-            state.isFanCurveEnabled
-              || draft.points.count <= FanCurveConfiguration.minimumPointCount)
-        }
-      }
+            state.isFanCurveEnabled || !draft.isValid || draft == state.fanCurveConfiguration)
 
-      HStack {
-        Button(L10n.text("action.addPoint", fallback: "Add Point")) {
-          if draft.addInterpolatedPoint() { message = nil }
+          Button(L10n.text("action.resetCurve", fallback: "Reset to Default")) {
+            draft = .default
+            message = nil
+          }
+          .disabled(state.isFanCurveEnabled || draft == .default)
         }
-        .disabled(state.isFanCurveEnabled || !canAddPoint)
-
-        Button(L10n.text("action.saveCurve", fallback: "Save Curve")) {
-          message = state.saveFanCurveConfiguration(draft)
-            ? L10n.text("curve.saved", fallback: "Curve saved")
-            : L10n.text("curve.invalid", fallback: "Curve settings are invalid")
-        }
-        .disabled(state.isFanCurveEnabled || !draft.isValid || draft == state.fanCurveConfiguration)
-
-        Button(L10n.text("action.resetCurve", fallback: "Reset to Default")) {
-          draft = .default
-          message = nil
-        }
-        .disabled(state.isFanCurveEnabled || draft == .default)
       }
 
       if state.isFanCurveEnabled {
@@ -98,9 +137,10 @@ private struct MontereyCurveEditor: View {
           L10n.text(
             "curve.disableToEdit",
             fallback: "Disable the automatic curve before editing its points."),
-          systemImage: "lock.fill")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+          systemImage: "lock.fill"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
       } else if let message {
         Text(message)
           .font(.caption)
@@ -115,6 +155,15 @@ private struct MontereyCurveEditor: View {
   private var canAddPoint: Bool {
     var candidate = draft
     return candidate.addInterpolatedPoint()
+  }
+
+  private var displayConfiguration: Binding<FanCurveConfiguration> {
+    Binding(
+      get: { state.fanCurveMode == .automatic ? .automatic : draft },
+      set: { configuration in
+        guard state.fanCurveMode == .custom else { return }
+        draft = configuration
+      })
   }
 }
 

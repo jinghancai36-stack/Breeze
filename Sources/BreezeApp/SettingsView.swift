@@ -50,6 +50,19 @@ struct SettingsView: View {
           state.isApplyingPreset || state.isRestoringAutomaticControl
             || !state.fansApplyingControl.isEmpty)
 
+        Picker(
+          L10n.text("curve.profile", fallback: "Control profile"),
+          selection: Binding(
+            get: { state.fanCurveMode },
+            set: { state.setFanCurveMode($0) })
+        ) {
+          Text(L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C"))
+            .tag(FanCurveMode.automatic)
+          Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
+            .tag(FanCurveMode.custom)
+        }
+        .disabled(state.isFanCurveEnabled)
+
         LabeledContent(L10n.text("curve.sensor", fallback: "Control sensor")) {
           Text(curveSensorTitle)
         }
@@ -70,21 +83,34 @@ struct SettingsView: View {
       }
 
       Section {
-        ForEach(Array(state.fanCurveConfiguration.points.enumerated()), id: \.element.id) {
+        ForEach(Array(state.effectiveFanCurveConfiguration.points.enumerated()), id: \.element.id) {
           index, point in
           curveThresholdRow(
-            stage: L10n.format("curve.pointNumber", fallback: "Point %d", index + 1),
+            stage: state.fanCurveMode == .automatic
+              ? (index == 0
+                ? L10n.text("curve.idlePoint", fallback: "Idle")
+                : L10n.text("curve.maximumPoint", fallback: "Maximum"))
+              : L10n.format("curve.pointNumber", fallback: "Point %d", index + 1),
             range: "\(point.temperature) °C · \(point.fanPercent)%")
         }
       } header: {
-        Text(L10n.text("curve.thresholds", fallback: "Saved Curve Points"))
+        Text(
+          state.fanCurveMode == .automatic
+            ? L10n.text("curve.automaticPlan", fallback: "Automatic Plan")
+            : L10n.text("curve.thresholds", fallback: "Saved Curve Points"))
       } footer: {
         Text(
-          L10n.text(
-            "curve.hysteresis",
-            fallback:
-              "Rising targets apply immediately. Decreases use the saved hysteresis and delay to prevent rapid switching. Edit the curve in the Breeze window."
-          ))
+          state.fanCurveMode == .automatic
+            ? L10n.text(
+              "curve.automaticDescription",
+              fallback:
+                "Breeze continuously maps the hotter CPU/GPU temperature from 45°C at 20% to 90°C at 100%, in safe 5% steps. Rising temperatures apply immediately; decreases use a 2°C hysteresis and 3-second delay."
+            )
+            : L10n.text(
+              "curve.hysteresis",
+              fallback:
+                "Rising targets apply immediately. Decreases use the saved hysteresis and delay to prevent rapid switching. Edit the curve in the Breeze window."
+            ))
       }
 
       Section(L10n.text("settings.safety", fallback: "Safety")) {
@@ -119,7 +145,7 @@ struct SettingsView: View {
   }
 
   private var curveSensorTitle: String {
-    switch state.fanCurveConfiguration.sensorSource {
+    switch state.effectiveFanCurveConfiguration.sensorSource {
     case .cpuGPUPeak: L10n.text("curve.sensorPeak", fallback: "CPU/GPU Peak")
     case .cpu: L10n.text("temperature.cpu", fallback: "CPU")
     case .gpu: L10n.text("temperature.gpu", fallback: "GPU")

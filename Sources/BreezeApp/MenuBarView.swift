@@ -225,10 +225,13 @@ struct MenuBarView: View {
           Text(L10n.text("curve.title", fallback: "Automatic Curve"))
             .font(.caption.weight(.semibold))
           Text(
-            L10n.format(
-              "curve.summary",
-              fallback: "%d saved points · interpolated in 5%% steps",
-              state.fanCurveConfiguration.points.count)
+            state.fanCurveMode == .automatic
+              ? L10n.text(
+                "curve.automaticSummary", fallback: "45–90°C · continuously planned")
+              : L10n.format(
+                "curve.summary",
+                fallback: "%d saved points · interpolated in 5%% steps",
+                state.fanCurveConfiguration.points.count)
           )
           .font(.caption2)
           .foregroundStyle(.secondary)

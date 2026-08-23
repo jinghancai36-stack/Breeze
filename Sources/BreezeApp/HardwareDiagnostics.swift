@@ -35,6 +35,7 @@ struct HardwareDiagnosticReport: Codable, Equatable {
   }
 
   struct Curve: Codable, Equatable {
+    let mode: String
     let enabled: Bool
     let sensorSource: String
     let points: [CurvePoint]
@@ -113,13 +114,14 @@ extension AppState {
         fanModes: automaticControlStatus?.fanModes,
         forceTest: automaticControlStatus?.forceTest),
       curve: .init(
+        mode: fanCurveMode.rawValue,
         enabled: isFanCurveEnabled,
-        sensorSource: fanCurveConfiguration.sensorSource.rawValue,
-        points: fanCurveConfiguration.points.map {
+        sensorSource: effectiveFanCurveConfiguration.sensorSource.rawValue,
+        points: effectiveFanCurveConfiguration.points.map {
           .init(temperatureCelsius: $0.temperature, fanPercent: $0.fanPercent)
         },
-        hysteresisCelsius: fanCurveConfiguration.hysteresis,
-        decreaseDelaySeconds: fanCurveConfiguration.decreaseDelaySeconds,
+        hysteresisCelsius: effectiveFanCurveConfiguration.hysteresis,
+        decreaseDelaySeconds: effectiveFanCurveConfiguration.decreaseDelaySeconds,
         activeMode: activeControlMode.rawValue))
   }
 }

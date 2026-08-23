@@ -6,6 +6,7 @@ All notable Breeze changes are recorded here. Breeze follows semantic versioning
 
 ### Added
 
+- Default 45–90 °C automatic temperature planning with continuously interpolated 5% fan targets, one-second active polling, and an optional Advanced Custom profile.
 - Privacy-bounded hardware diagnostic JSON export and a matching GitHub Apple Silicon model-feedback template.
 - Apple Silicon-only macOS 12 Monterey compatibility, matching the factory OS generation of the 2021 M1 Pro MacBook Pro.
 - AppKit status-item and window compatibility paths for Monterey, including the existing fan controls and a native draggable curve editor without Swift Charts.

@@ -12,7 +12,7 @@ Breeze is a SwiftUI menu bar app that displays high-value temperatures and fan R
 - Native macOS menu bar UI with Light and Dark Mode support
 - CPU, GPU, memory, battery, and fan summaries where available
 - Automatic, Quiet curve, Balanced, Cool, Max, and per-fan Manual controls
-- Opt-in automatic curve driven by the higher CPU/GPU temperature, with fixed stages and hysteresis
+- Opt-in automatic temperature control that continuously maps the higher CPU/GPU temperature from 45 °C at 20% to 90 °C at 100%
 - Targets derived from each fan's detected minimum and maximum RPM
 - Root Helper with a narrow, typed XPC boundary and strict peer validation
 - Fixed 15-second safety lease renewed by the GUI every 5 seconds
@@ -198,6 +198,16 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - New points are inserted into the largest available temperature span and inherit the existing interpolated 5% target
 - The latest 300 CPU/GPU and per-fan RPM samples persist across app restarts
 - History is validated on restore, saved in batches to limit disk writes, and can be explicitly cleared from the Overview page
+
+### Milestone 15 — Automatic temperature planning
+
+- Automatic is the default curve profile; no point editing is required
+- The hotter CPU/GPU reading maps linearly from 45 °C at 20% fan range to 90 °C at 100%
+- Output changes in safe 5% steps instead of holding one fixed preset RPM
+- Rising temperatures apply immediately; decreases use a 2 °C hysteresis and 3-second delay
+- Active temperature control keeps one-second hardware polling even with Breeze windows closed
+- Existing custom points remain available under **Advanced Custom** and are not deleted by migration
+- Automated results are recorded in [Milestone 15 Validation](docs/VALIDATION_M15.md)
 
 ### Hardware model feedback
 

@@ -107,8 +107,7 @@ private final class StubHelperClient: HelperCommunicating, @unchecked Sendable {
   private(set) var maxPresetCount = 0
   private(set) var curveTargetPercents: [Int] = []
   private let deferRenewal: Bool
-  private var pendingRenewal:
-    (@Sendable (Result<ControlLeaseStatus, Error>) -> Void)?
+  private var pendingRenewal: (@Sendable (Result<ControlLeaseStatus, Error>) -> Void)?
 
   init(
     result: Result<String, Error>,
@@ -422,8 +421,8 @@ struct AppStateTests {
     #expect(state.isFanCurveEnabled)
     #expect(state.fanCurveStage == .cool)
     #expect(state.activeControlMode == .curve)
-    #expect(client.curveTargetPercents == [65])
-    #expect(state.fanCurveTargetPercent == 65)
+    #expect(client.curveTargetPercents == [75])
+    #expect(state.fanCurveTargetPercent == 75)
     #expect(client.restoreCount == 0)
     #expect(state.controlLeaseStatus?.isActive == true)
 
@@ -438,12 +437,12 @@ struct AppStateTests {
     #expect(client.restoreCount == 1)
   }
 
-  @Test("Automatic curve keeps a low-temperature custom target under the watchdog")
+  @Test("Automatic curve varies a low-temperature target under the watchdog")
   func fanCurveQuietOwnership() async throws {
     let installer = StubHelperInstaller()
     installer.currentStatus = .enabled
     let client = StubHelperClient(result: .success(BreezeHelperConstants.helperVersion))
-    let monitor = StubMonitor(controlVerified: true, temperature: 55)
+    let monitor = StubMonitor(controlVerified: true, temperature: 45)
     let state = AppState(
       monitor: monitor, helperInstaller: installer, helperClient: client)
 
@@ -459,16 +458,16 @@ struct AppStateTests {
     }
     #expect(state.isFanCurveEnabled)
     #expect(state.activeControlMode == .curve)
-    #expect(client.curveTargetPercents == [30])
+    #expect(client.curveTargetPercents == [20])
     #expect(client.restoreCount == 0)
     #expect(state.controlLeaseStatus?.isActive == true)
 
-    monitor.setTemperature(61)
+    monitor.setTemperature(55)
     await state.refreshForTesting()
     for _ in 0..<50 where state.fanCurveStage != .balanced {
       try await Task.sleep(nanoseconds: 10_000_000)
     }
-    #expect(client.curveTargetPercents == [30, 35])
+    #expect(client.curveTargetPercents == [20, 40])
     #expect(client.restoreCount == 0)
     #expect(state.isFanCurveEnabled)
 
@@ -892,7 +891,8 @@ struct AppStateTests {
       monitor: StubMonitor(),
       helperInstaller: installer,
       helperClient: StubHelperClient(
-        result: .success(BreezeHelperConstants.helperVersion), automaticResult: .success(failedStatus)),
+        result: .success(BreezeHelperConstants.helperVersion),
+        automaticResult: .success(failedStatus)),
       terminateApp: { didTerminate = true }
     )
 

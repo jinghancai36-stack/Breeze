@@ -12,6 +12,13 @@ enum CurveSensorSource: String, CaseIterable, Codable, Identifiable, Sendable {
   var id: String { rawValue }
 }
 
+enum FanCurveMode: String, CaseIterable, Codable, Identifiable, Sendable {
+  case automatic
+  case custom
+
+  var id: String { rawValue }
+}
+
 struct FanCurvePoint: Codable, Equatable, Identifiable, Sendable {
   var id: UUID
   var temperature: Int
@@ -49,6 +56,16 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
     ],
     hysteresis: 3,
     decreaseDelaySeconds: 5
+  )
+
+  static let automatic = FanCurveConfiguration(
+    sensorSource: .cpuGPUPeak,
+    points: [
+      FanCurvePoint(temperature: 45, fanPercent: 20),
+      FanCurvePoint(temperature: 90, fanPercent: 100),
+    ],
+    hysteresis: 2,
+    decreaseDelaySeconds: 3
   )
 
   var isValid: Bool {
@@ -95,8 +112,9 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
       let span = upper.temperature - lower.temperature
       guard span >= Self.minimumPointSpacing * 2 else { continue }
       let temperature = lower.temperature + span / 2
-      guard let fanPercent = CustomFanCurvePolicy.interpolatedPercent(
-        for: Double(temperature), configuration: self)
+      guard
+        let fanPercent = CustomFanCurvePolicy.interpolatedPercent(
+          for: Double(temperature), configuration: self)
       else { continue }
       candidates.append(
         Candidate(
@@ -126,10 +144,12 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
           isInterior: false, insertionIndex: points.count))
     }
 
-    guard let candidate = candidates.max(by: {
-      if $0.span != $1.span { return $0.span < $1.span }
-      return !$0.isInterior && $1.isInterior
-    }) else { return false }
+    guard
+      let candidate = candidates.max(by: {
+        if $0.span != $1.span { return $0.span < $1.span }
+        return !$0.isInterior && $1.isInterior
+      })
+    else { return false }
 
     let previousPoints = points
     points.insert(
@@ -158,10 +178,12 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
 
   func temperatureRange(for pointID: FanCurvePoint.ID) -> ClosedRange<Int>? {
     guard let index = points.firstIndex(where: { $0.id == pointID }) else { return nil }
-    let minimum = index == 0
+    let minimum =
+      index == 0
       ? Self.minimumTemperature
       : points[index - 1].temperature + Self.minimumPointSpacing
-    let maximum = index == points.count - 1
+    let maximum =
+      index == points.count - 1
       ? Self.maximumTemperature
       : points[index + 1].temperature - Self.minimumPointSpacing
     guard minimum <= maximum else { return nil }
@@ -171,7 +193,8 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
   func fanPercentRange(for pointID: FanCurvePoint.ID) -> ClosedRange<Int>? {
     guard let index = points.firstIndex(where: { $0.id == pointID }) else { return nil }
     let minimum = index == 0 ? Self.minimumFanPercent : points[index - 1].fanPercent
-    let maximum = index == points.count - 1
+    let maximum =
+      index == points.count - 1
       ? Self.maximumFanPercent : points[index + 1].fanPercent
     guard minimum <= maximum else { return nil }
     return minimum...maximum
@@ -190,14 +213,16 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
     let boundedTemperature = min(
       max(Int(temperature.rounded()), temperatureRange.lowerBound),
       temperatureRange.upperBound)
-    let quantizedPercent = Int(
-      (fanPercent / Double(Self.percentageStep)).rounded()) * Self.percentageStep
+    let quantizedPercent =
+      Int(
+        (fanPercent / Double(Self.percentageStep)).rounded()) * Self.percentageStep
     let boundedPercent = min(
       max(quantizedPercent, fanPercentRange.lowerBound),
       fanPercentRange.upperBound)
 
-    guard points[index].temperature != boundedTemperature
-      || points[index].fanPercent != boundedPercent
+    guard
+      points[index].temperature != boundedTemperature
+        || points[index].fanPercent != boundedPercent
     else { return false }
 
     points[index].temperature = boundedTemperature
@@ -259,8 +284,9 @@ enum CustomFanCurvePolicy {
     state: inout FanCurveDecisionState,
     now: Date
   ) -> Int? {
-    guard let candidate = interpolatedPercent(
-      for: temperature, configuration: configuration)
+    guard
+      let candidate = interpolatedPercent(
+        for: temperature, configuration: configuration)
     else { return nil }
 
     guard let applied = state.appliedPercent else {
@@ -342,6 +368,26 @@ struct CurveConfigurationStore {
     else { return false }
     defaults.set(data, forKey: Self.key)
     return true
+  }
+}
+
+struct CurveModeStore {
+  private static let key = "fanCurveMode.v1"
+  private let defaults: UserDefaults
+
+  init(defaults: UserDefaults = .standard) {
+    self.defaults = defaults
+  }
+
+  func load() -> FanCurveMode {
+    guard let rawValue = defaults.string(forKey: Self.key),
+      let mode = FanCurveMode(rawValue: rawValue)
+    else { return .automatic }
+    return mode
+  }
+
+  func save(_ mode: FanCurveMode) {
+    defaults.set(mode.rawValue, forKey: Self.key)
   }
 }
 

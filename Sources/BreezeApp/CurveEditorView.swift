@@ -17,12 +17,21 @@ struct CurveEditorView: View {
     VStack(alignment: .leading, spacing: 18) {
       HStack {
         VStack(alignment: .leading, spacing: 3) {
-          Text(L10n.text("curve.editorTitle", fallback: "Custom Curve"))
-            .font(.headline)
           Text(
-            L10n.text(
-              "curve.editorSubtitle",
-              fallback: "Targets are interpolated and rounded to safe 5% steps."))
+            state.fanCurveMode == .automatic
+              ? L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C")
+              : L10n.text("curve.editorTitle", fallback: "Custom Curve")
+          )
+          .font(.headline)
+          Text(
+            state.fanCurveMode == .automatic
+              ? L10n.text(
+                "curve.automaticShort",
+                fallback: "Fan speed follows temperature automatically; no points need editing.")
+              : L10n.text(
+                "curve.editorSubtitle",
+                fallback: "Targets are interpolated and rounded to safe 5% steps.")
+          )
           .font(.callout)
           .foregroundStyle(.secondary)
         }
@@ -30,90 +39,113 @@ struct CurveEditorView: View {
         if state.isFanCurveEnabled {
           Label(
             L10n.text("curve.disableToEdit", fallback: "Disable the curve to edit"),
-            systemImage: "lock.fill")
-            .font(.callout)
-            .foregroundStyle(.secondary)
+            systemImage: "lock.fill"
+          )
+          .font(.callout)
+          .foregroundStyle(.secondary)
         }
       }
 
-      curveChart
-
       Picker(
-        L10n.text("curve.sensor", fallback: "Control sensor"),
-        selection: $draft.sensorSource
+        L10n.text("curve.profile", fallback: "Control profile"),
+        selection: Binding(
+          get: { state.fanCurveMode },
+          set: { state.setFanCurveMode($0) })
       ) {
-        ForEach(CurveSensorSource.allCases) { source in
-          Text(sensorTitle(source)).tag(source)
-        }
+        Text(L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C"))
+          .tag(FanCurveMode.automatic)
+        Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
+          .tag(FanCurveMode.custom)
       }
       .pickerStyle(.segmented)
       .disabled(state.isFanCurveEnabled)
 
-      VStack(spacing: 12) {
-        HStack {
-          Text(
-            L10n.format(
-              "curve.pointCount", fallback: "%d curve points", draft.points.count))
+      curveChart
+
+      if state.fanCurveMode == .automatic {
+        automaticPlanSummary
+      } else {
+        Picker(
+          L10n.text("curve.sensor", fallback: "Control sensor"),
+          selection: $draft.sensorSource
+        ) {
+          ForEach(CurveSensorSource.allCases) { source in
+            Text(sensorTitle(source)).tag(source)
+          }
+        }
+        .pickerStyle(.segmented)
+        .disabled(state.isFanCurveEnabled)
+
+        VStack(spacing: 12) {
+          HStack {
+            Text(
+              L10n.format(
+                "curve.pointCount", fallback: "%d curve points", draft.points.count)
+            )
             .font(.callout.weight(.semibold))
             .foregroundStyle(.secondary)
-          Spacer()
-          Button {
-            if draft.addInterpolatedPoint() { savedMessage = nil }
-          } label: {
-            Label(L10n.text("action.addPoint", fallback: "Add Point"), systemImage: "plus")
+            Spacer()
+            Button {
+              if draft.addInterpolatedPoint() { savedMessage = nil }
+            } label: {
+              Label(L10n.text("action.addPoint", fallback: "Add Point"), systemImage: "plus")
+            }
+            .disabled(state.isFanCurveEnabled || !canAddPoint)
           }
-          .disabled(state.isFanCurveEnabled || !canAddPoint)
+
+          ForEach(draft.points) { point in
+            curvePointRow(pointID: point.id)
+          }
         }
 
-        ForEach(draft.points) { point in
-          curvePointRow(pointID: point.id)
+        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+          GridRow {
+            Text(L10n.text("curve.hysteresisLabel", fallback: "Decrease hysteresis"))
+            Slider(value: hysteresisBinding, in: 0...10, step: 1)
+            Text("\(Int(draft.hysteresis)) °C")
+              .monospacedDigit()
+              .frame(width: 46, alignment: .trailing)
+          }
+          GridRow {
+            Text(L10n.text("curve.delayLabel", fallback: "Decrease delay"))
+            Slider(value: delayBinding, in: 0...30, step: 1)
+            Text("\(Int(draft.decreaseDelaySeconds)) s")
+              .monospacedDigit()
+              .frame(width: 46, alignment: .trailing)
+          }
         }
-      }
+        .disabled(state.isFanCurveEnabled)
 
-      Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-        GridRow {
-          Text(L10n.text("curve.hysteresisLabel", fallback: "Decrease hysteresis"))
-          Slider(value: hysteresisBinding, in: 0...10, step: 1)
-          Text("\(Int(draft.hysteresis)) °C")
-            .monospacedDigit()
-            .frame(width: 46, alignment: .trailing)
-        }
-        GridRow {
-          Text(L10n.text("curve.delayLabel", fallback: "Decrease delay"))
-          Slider(value: delayBinding, in: 0...30, step: 1)
-          Text("\(Int(draft.decreaseDelaySeconds)) s")
-            .monospacedDigit()
-            .frame(width: 46, alignment: .trailing)
-        }
-      }
-      .disabled(state.isFanCurveEnabled)
+        HStack {
+          Button(L10n.text("action.saveCurve", fallback: "Save Curve")) {
+            savedMessage =
+              state.saveFanCurveConfiguration(draft)
+              ? L10n.text("curve.saved", fallback: "Curve saved")
+              : L10n.text("curve.invalid", fallback: "Curve settings are invalid")
+          }
+          .buttonStyle(.borderedProminent)
+          .disabled(
+            state.isFanCurveEnabled || !draft.isValid || draft == state.fanCurveConfiguration)
 
-      HStack {
-        Button(L10n.text("action.saveCurve", fallback: "Save Curve")) {
-          savedMessage = state.saveFanCurveConfiguration(draft)
-            ? L10n.text("curve.saved", fallback: "Curve saved")
-            : L10n.text("curve.invalid", fallback: "Curve settings are invalid")
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(state.isFanCurveEnabled || !draft.isValid || draft == state.fanCurveConfiguration)
+          Button(L10n.text("action.resetCurve", fallback: "Reset to Default")) {
+            draft = .default
+            savedMessage = nil
+          }
+          .disabled(state.isFanCurveEnabled || draft == .default)
 
-        Button(L10n.text("action.resetCurve", fallback: "Reset to Default")) {
-          draft = .default
-          savedMessage = nil
-        }
-        .disabled(state.isFanCurveEnabled || draft == .default)
-
-        Spacer()
-        if let savedMessage {
-          Label(savedMessage, systemImage: draft.isValid ? "checkmark.circle" : "xmark.circle")
-            .font(.callout)
-            .foregroundStyle(draft.isValid ? .green : .red)
-        } else if !draft.isValid {
-          Label(
-            L10n.text("curve.invalid", fallback: "Curve settings are invalid"),
-            systemImage: "exclamationmark.triangle.fill")
+          Spacer()
+          if let savedMessage {
+            Label(savedMessage, systemImage: draft.isValid ? "checkmark.circle" : "xmark.circle")
+              .font(.callout)
+              .foregroundStyle(draft.isValid ? .green : .red)
+          } else if !draft.isValid {
+            Label(
+              L10n.text("curve.invalid", fallback: "Curve settings are invalid"),
+              systemImage: "exclamationmark.triangle.fill"
+            )
             .font(.callout)
             .foregroundStyle(.red)
+          }
         }
       }
     }
@@ -125,15 +157,17 @@ struct CurveEditorView: View {
   private var curveChart: some View {
     VStack(alignment: .leading, spacing: 6) {
       Chart {
-        ForEach(draft.points) { point in
+        ForEach(displayConfiguration.points) { point in
           LineMark(
             x: .value("Temperature", point.temperature),
-            y: .value("Fan", point.fanPercent))
-            .interpolationMethod(.linear)
+            y: .value("Fan", point.fanPercent)
+          )
+          .interpolationMethod(.linear)
           PointMark(
             x: .value("Temperature", point.temperature),
-            y: .value("Fan", point.fanPercent))
-            .symbolSize(point.id == draggedPointID ? 130 : 85)
+            y: .value("Fan", point.fanPercent)
+          )
+          .symbolSize(point.id == draggedPointID ? 130 : 85)
         }
         if let temperature = state.fanCurveTemperature {
           RuleMark(x: .value("Current", temperature))
@@ -144,12 +178,14 @@ struct CurveEditorView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-          }
         }
+      }
       .chartXScale(
-        domain: FanCurveConfiguration.minimumTemperature...FanCurveConfiguration.maximumTemperature)
+        domain: FanCurveConfiguration.minimumTemperature...FanCurveConfiguration.maximumTemperature
+      )
       .chartYScale(
-        domain: FanCurveConfiguration.minimumFanPercent...FanCurveConfiguration.maximumFanPercent)
+        domain: FanCurveConfiguration.minimumFanPercent...FanCurveConfiguration.maximumFanPercent
+      )
       .chartXAxisLabel(L10n.text("curve.temperatureAxis", fallback: "Temperature (°C)"))
       .chartYAxisLabel(L10n.text("curve.fanAxis", fallback: "Fan (%)"))
       .chartOverlay { proxy in
@@ -164,20 +200,54 @@ struct CurveEditorView: View {
                 }
                 .onEnded { _ in
                   draggedPointID = nil
-                })
-            .allowsHitTesting(!state.isFanCurveEnabled)
+                }
+            )
+            .allowsHitTesting(state.fanCurveMode == .custom && !state.isFanCurveEnabled)
         }
       }
       .frame(height: 230)
 
       Label(
-        L10n.text(
-          "curve.dragHint",
-          fallback: "Drag a chart point to adjust temperature and fan speed."),
-        systemImage: "cursorarrow.motionlines")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        state.fanCurveMode == .automatic
+          ? L10n.text(
+            "curve.automaticDescription",
+            fallback:
+              "Breeze continuously maps the hotter CPU/GPU temperature from 45°C at 20% to 90°C at 100%, in safe 5% steps. Rising temperatures apply immediately; decreases use a 2°C hysteresis and 3-second delay."
+          )
+          : L10n.text(
+            "curve.dragHint",
+            fallback: "Drag a chart point to adjust temperature and fan speed."),
+        systemImage: state.fanCurveMode == .automatic ? "wand.and.stars" : "cursorarrow.motionlines"
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
     }
+    .padding(.vertical, 4)
+  }
+
+  private var displayConfiguration: FanCurveConfiguration {
+    state.fanCurveMode == .automatic ? .automatic : draft
+  }
+
+  private var automaticPlanSummary: some View {
+    Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
+      GridRow {
+        Label(L10n.text("curve.idlePoint", fallback: "Idle"), systemImage: "leaf")
+        Text("45 °C")
+        Text("20%")
+      }
+      GridRow {
+        Label(L10n.text("curve.maximumPoint", fallback: "Maximum"), systemImage: "flame")
+        Text("90 °C")
+        Text("100%")
+      }
+      GridRow {
+        Label(L10n.text("curve.response", fallback: "Response"), systemImage: "waveform.path")
+        Text(L10n.text("curve.responseValue", fallback: "Continuous · 5% steps"))
+          .gridCellColumns(2)
+      }
+    }
+    .monospacedDigit()
     .padding(.vertical, 4)
   }
 
@@ -222,13 +292,15 @@ struct CurveEditorView: View {
       Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
         GridRow {
           Text(
-            L10n.format("curve.pointNumber", fallback: "Point %d", index + 1))
-            .fontWeight(.medium)
-            .frame(width: 58, alignment: .leading)
+            L10n.format("curve.pointNumber", fallback: "Point %d", index + 1)
+          )
+          .fontWeight(.medium)
+          .frame(width: 58, alignment: .leading)
           safeSlider(
             value: temperatureBinding(pointID),
             range: temperatureRange,
-            fallbackRange: FanCurveConfiguration.minimumTemperature...FanCurveConfiguration.maximumTemperature,
+            fallbackRange: FanCurveConfiguration
+              .minimumTemperature...FanCurveConfiguration.maximumTemperature,
             step: 1)
           Text("\(point.temperature) °C")
             .monospacedDigit()
@@ -236,7 +308,8 @@ struct CurveEditorView: View {
           safeSlider(
             value: percentBinding(pointID),
             range: percentRange,
-            fallbackRange: FanCurveConfiguration.minimumFanPercent...FanCurveConfiguration.maximumFanPercent,
+            fallbackRange: FanCurveConfiguration
+              .minimumFanPercent...FanCurveConfiguration.maximumFanPercent,
             step: FanCurveConfiguration.percentageStep)
           Text("\(point.fanPercent)%")
             .monospacedDigit()
@@ -300,25 +373,32 @@ struct CurveEditorView: View {
       Slider(
         value: .constant(value.wrappedValue),
         in: Double(fallbackRange.lowerBound)...Double(fallbackRange.upperBound),
-        step: Double(step))
-        .disabled(true)
-        .help(
-          L10n.text(
-            "curve.fixedByNeighbors",
-            fallback: "Adjust a neighboring point to unlock this value."))
+        step: Double(step)
+      )
+      .disabled(true)
+      .help(
+        L10n.text(
+          "curve.fixedByNeighbors",
+          fallback: "Adjust a neighboring point to unlock this value."))
     }
   }
 
   private var hysteresisBinding: Binding<Double> {
     Binding(
       get: { draft.hysteresis },
-      set: { draft.hysteresis = $0; savedMessage = nil })
+      set: {
+        draft.hysteresis = $0
+        savedMessage = nil
+      })
   }
 
   private var delayBinding: Binding<Double> {
     Binding(
       get: { draft.decreaseDelaySeconds },
-      set: { draft.decreaseDelaySeconds = $0; savedMessage = nil })
+      set: {
+        draft.decreaseDelaySeconds = $0
+        savedMessage = nil
+      })
   }
 
   private func sensorTitle(_ source: CurveSensorSource) -> String {
@@ -348,15 +428,17 @@ struct ThermalHistoryChart: View {
             LineMark(
               x: .value("Time", sample.id),
               y: .value("Temperature", cpu),
-              series: .value("Sensor", "CPU"))
-              .foregroundStyle(by: .value("Sensor", "CPU"))
+              series: .value("Sensor", "CPU")
+            )
+            .foregroundStyle(by: .value("Sensor", "CPU"))
           }
           if let gpu = sample.gpuTemperature {
             LineMark(
               x: .value("Time", sample.id),
               y: .value("Temperature", gpu),
-              series: .value("Sensor", "GPU"))
-              .foregroundStyle(by: .value("Sensor", "GPU"))
+              series: .value("Sensor", "GPU")
+            )
+            .foregroundStyle(by: .value("Sensor", "GPU"))
           }
         }
       }
@@ -371,8 +453,9 @@ struct ThermalHistoryChart: View {
         LineMark(
           x: .value("Time", value.date),
           y: .value("RPM", value.rpm),
-          series: .value("Fan", "Fan \(value.fanID + 1)"))
-          .foregroundStyle(by: .value("Fan", "Fan \(value.fanID + 1)"))
+          series: .value("Fan", "Fan \(value.fanID + 1)")
+        )
+        .foregroundStyle(by: .value("Fan", "Fan \(value.fanID + 1)"))
       }
       .chartYScale(domain: 0...7_000)
       .chartYAxisLabel("RPM")

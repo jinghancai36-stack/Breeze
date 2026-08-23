@@ -11,16 +11,47 @@ struct CurveConfigurationTests {
     let configuration = FanCurveConfiguration.default
 
     #expect(configuration.isValid)
-    #expect(CustomFanCurvePolicy.interpolatedPercent(
-      for: 40, configuration: configuration) == 20)
-    #expect(CustomFanCurvePolicy.interpolatedPercent(
-      for: 55, configuration: configuration) == 30)
-    #expect(CustomFanCurvePolicy.interpolatedPercent(
-      for: 60, configuration: configuration) == 35)
-    #expect(CustomFanCurvePolicy.interpolatedPercent(
-      for: 75, configuration: configuration) == 60)
-    #expect(CustomFanCurvePolicy.interpolatedPercent(
-      for: 95, configuration: configuration) == 100)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 40, configuration: configuration) == 20)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 55, configuration: configuration) == 30)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 60, configuration: configuration) == 35)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 75, configuration: configuration) == 60)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 95, configuration: configuration) == 100)
+  }
+
+  @Test("Automatic curve continuously spans 45 to 90 degrees")
+  func automaticPlanning() {
+    let configuration = FanCurveConfiguration.automatic
+
+    #expect(configuration.isValid)
+    #expect(configuration.points.map(\.temperature) == [45, 90])
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 35, configuration: configuration) == 20)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 45, configuration: configuration) == 20)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 55, configuration: configuration) == 40)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 70, configuration: configuration) == 65)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 90, configuration: configuration) == 100)
+    #expect(
+      CustomFanCurvePolicy.interpolatedPercent(
+        for: 100, configuration: configuration) == 100)
   }
 
   @Test("Invalid or descending points are rejected")
@@ -134,24 +165,30 @@ struct CurveConfigurationTests {
     var state = FanCurveDecisionState()
     let start = Date(timeIntervalSince1970: 1_000)
 
-    #expect(CustomFanCurvePolicy.nextTarget(
-      temperature: 60, configuration: configuration, state: &state, now: start) == 35)
-    #expect(CustomFanCurvePolicy.nextTarget(
-      temperature: 75, configuration: configuration, state: &state, now: start) == 60)
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 60, configuration: configuration, state: &state, now: start) == 35)
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 75, configuration: configuration, state: &state, now: start) == 60)
 
     // A small decrease remains inside the hysteresis band.
-    #expect(CustomFanCurvePolicy.nextTarget(
-      temperature: 73, configuration: configuration, state: &state, now: start) == nil)
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 73, configuration: configuration, state: &state, now: start) == nil)
 
     // A larger decrease begins the delay, then applies after five seconds.
-    #expect(CustomFanCurvePolicy.nextTarget(
-      temperature: 70, configuration: configuration, state: &state, now: start) == nil)
-    #expect(CustomFanCurvePolicy.nextTarget(
-      temperature: 70, configuration: configuration, state: &state,
-      now: start.addingTimeInterval(4)) == nil)
-    #expect(CustomFanCurvePolicy.nextTarget(
-      temperature: 70, configuration: configuration, state: &state,
-      now: start.addingTimeInterval(5)) == 50)
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 70, configuration: configuration, state: &state, now: start) == nil)
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 70, configuration: configuration, state: &state,
+        now: start.addingTimeInterval(4)) == nil)
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 70, configuration: configuration, state: &state,
+        now: start.addingTimeInterval(5)) == 50)
   }
 
   @Test("Configuration persists and invalid stored data falls back safely")
@@ -169,6 +206,20 @@ struct CurveConfigurationTests {
 
     defaults.set(Data("not-json".utf8), forKey: "fanCurveConfiguration.v1")
     #expect(store.load() == .default)
+  }
+
+  @Test("Automatic mode is the default and profile selection persists")
+  func curveModePersistence() throws {
+    let suite = "BreezeCurveModeTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = CurveModeStore(defaults: defaults)
+
+    #expect(store.load() == .automatic)
+    store.save(.custom)
+    #expect(store.load() == .custom)
+    defaults.set("invalid", forKey: "fanCurveMode.v1")
+    #expect(store.load() == .automatic)
   }
 
   @Test("Thermal history persists in order, stays bounded, and can be cleared")

@@ -41,6 +41,8 @@ struct HardwareDiagnosticsTests {
     #expect(report.snapshot.fans.count == 2)
     #expect(report.snapshot.sensors.first?.id == "Tp01")
     #expect(report.helper.registration == "enabled")
+    #expect(report.curve.mode == "automatic")
+    #expect(report.curve.points.map(\.temperatureCelsius) == [45, 90])
 
     let json = String(decoding: try report.encodedData(), as: UTF8.self)
     #expect(json.contains("\"privacyNotice\""))

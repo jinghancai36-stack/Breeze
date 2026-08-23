@@ -43,6 +43,7 @@ final class AppState: ObservableObject {
   @Published private(set) var fanCurveStage: FanCurveStage = .automatic
   @Published private(set) var fanCurveTemperature: Double?
   @Published private(set) var fanCurveTargetPercent: Int?
+  @Published private(set) var fanCurveMode: FanCurveMode
   @Published private(set) var fanCurveConfiguration: FanCurveConfiguration
   @Published private(set) var thermalHistory: [ThermalHistorySample] = []
 
@@ -52,6 +53,7 @@ final class AppState: ObservableObject {
   private let helperInstaller: any HelperInstalling
   private let helperClient: any HelperCommunicating
   private let curveConfigurationStore: CurveConfigurationStore
+  private let curveModeStore: CurveModeStore
   private let thermalHistoryStore: ThermalHistoryStore
   private let terminateApp: @MainActor () -> Void
   private var pollingTask: Task<Void, Never>?
@@ -66,13 +68,16 @@ final class AppState: ObservableObject {
     helperInstaller: any HelperInstalling = SystemHelperInstaller(),
     helperClient: any HelperCommunicating = HelperClient(),
     curveConfigurationStore: CurveConfigurationStore = CurveConfigurationStore(),
+    curveModeStore: CurveModeStore = CurveModeStore(),
     thermalHistoryStore: ThermalHistoryStore = ThermalHistoryStore(),
     terminateApp: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) }
   ) {
     self.helperInstaller = helperInstaller
     self.helperClient = helperClient
     self.curveConfigurationStore = curveConfigurationStore
+    self.curveModeStore = curveModeStore
     self.thermalHistoryStore = thermalHistoryStore
+    fanCurveMode = curveModeStore.load()
     fanCurveConfiguration = curveConfigurationStore.load()
     thermalHistory = thermalHistoryStore.load()
     self.terminateApp = terminateApp
@@ -94,7 +99,9 @@ final class AppState: ObservableObject {
     helperInstaller = PreviewHelperInstaller()
     helperClient = PreviewHelperClient()
     curveConfigurationStore = CurveConfigurationStore()
+    curveModeStore = CurveModeStore()
     thermalHistoryStore = ThermalHistoryStore()
+    fanCurveMode = .automatic
     fanCurveConfiguration = .default
     terminateApp = {}
     helperStatus = .enabled
@@ -493,7 +500,12 @@ final class AppState: ObservableObject {
         await refresh()
       }
       do {
-        let seconds = MonitoringPolicy.refreshInterval(isPopoverVisible: isPopoverVisible)
+        // Active automatic control stays on the one-second cadence even when
+        // every Breeze window is closed, so load changes are not delayed by
+        // the quieter background-monitoring interval.
+        let seconds = isFanCurveEnabled
+          ? MonitoringPolicy.visibleRefreshInterval
+          : MonitoringPolicy.refreshInterval(isPopoverVisible: isPopoverVisible)
         try await TaskSleepCompatibility.sleep(for: seconds)
       } catch {
         return
@@ -545,7 +557,8 @@ final class AppState: ObservableObject {
         }
 
         do {
-          try await TaskSleepCompatibility.sleep(for: TimeInterval(ControlLeaseTiming.heartbeatSeconds))
+          try await TaskSleepCompatibility.sleep(
+            for: TimeInterval(ControlLeaseTiming.heartbeatSeconds))
         } catch {
           return
         }
@@ -617,11 +630,12 @@ final class AppState: ObservableObject {
   }
 
   func enableFanCurve() {
+    let configuration = effectiveFanCurveConfiguration
     guard let snapshot,
       snapshot.fans.count == 2,
       snapshot.fans.allSatisfy({ canControlFan($0.id) }),
       CustomFanCurvePolicy.controlTemperature(
-        for: snapshot, source: fanCurveConfiguration.sensorSource) != nil,
+        for: snapshot, source: configuration.sensorSource) != nil,
       !isRestoringAutomaticControl,
       !isApplyingPreset,
       fansApplyingControl.isEmpty
@@ -659,8 +673,10 @@ final class AppState: ObservableObject {
       fansApplyingControl.isEmpty
     else { return }
 
-    guard let temperature = CustomFanCurvePolicy.controlTemperature(
-      for: snapshot, source: fanCurveConfiguration.sensorSource)
+    let configuration = effectiveFanCurveConfiguration
+    guard
+      let temperature = CustomFanCurvePolicy.controlTemperature(
+        for: snapshot, source: configuration.sensorSource)
     else {
       deactivateFanCurve()
       restoreAutomaticControl(preservingCurve: false)
@@ -668,11 +684,12 @@ final class AppState: ObservableObject {
     }
 
     fanCurveTemperature = temperature
-    guard let targetPercent = CustomFanCurvePolicy.nextTarget(
-      temperature: temperature,
-      configuration: fanCurveConfiguration,
-      state: &fanCurveDecisionState,
-      now: Date())
+    guard
+      let targetPercent = CustomFanCurvePolicy.nextTarget(
+        temperature: temperature,
+        configuration: configuration,
+        state: &fanCurveDecisionState,
+        now: Date())
     else { return }
 
     applyPreset(
@@ -691,6 +708,19 @@ final class AppState: ObservableObject {
     fanCurveConfiguration = configuration
     fanCurveDecisionState.reset()
     return true
+  }
+
+  func setFanCurveMode(_ mode: FanCurveMode) {
+    guard !isFanCurveEnabled, fanCurveMode != mode else { return }
+    fanCurveMode = mode
+    curveModeStore.save(mode)
+    fanCurveDecisionState.reset()
+    fanCurveTemperature = nil
+    fanCurveTargetPercent = nil
+  }
+
+  var effectiveFanCurveConfiguration: FanCurveConfiguration {
+    fanCurveMode == .automatic ? .automatic : fanCurveConfiguration
   }
 
   func resetFanCurveConfiguration() {

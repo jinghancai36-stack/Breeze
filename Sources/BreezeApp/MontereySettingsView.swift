@@ -30,10 +30,28 @@ struct MontereySettingsView: View {
                 set: { enabled in
                   if enabled { state.enableFanCurve() } else { state.disableFanCurve() }
                 }))
+            Picker(
+              L10n.text("curve.profile", fallback: "Control profile"),
+              selection: Binding(
+                get: { state.fanCurveMode },
+                set: { state.setFanCurveMode($0) })
+            ) {
+              Text(L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C"))
+                .tag(FanCurveMode.automatic)
+              Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
+                .tag(FanCurveMode.custom)
+            }
+            .disabled(state.isFanCurveEnabled)
             Text(
-              L10n.text(
-                "curve.safetyBody",
-                fallback: "Every curve target remains protected by the Breeze watchdog.")
+              state.fanCurveMode == .automatic
+                ? L10n.text(
+                  "curve.automaticDescription",
+                  fallback:
+                    "Breeze continuously maps the hotter CPU/GPU temperature from 45°C at 20% to 90°C at 100%, in safe 5% steps. Rising temperatures apply immediately; decreases use a 2°C hysteresis and 3-second delay."
+                )
+                : L10n.text(
+                  "curve.safetyBody",
+                  fallback: "Every curve target remains protected by the Breeze watchdog.")
             )
             .font(.caption)
             .foregroundStyle(.secondary)

@@ -113,9 +113,10 @@ struct DashboardView: View {
               Text(
                 L10n.format(
                   "dashboard.historySampleCount", fallback: "%d saved samples",
-                  state.thermalHistory.count))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                  state.thermalHistory.count)
+              )
+              .font(.callout)
+              .foregroundStyle(.secondary)
               Spacer()
               Button(L10n.text("action.clearHistory", fallback: "Clear History")) {
                 isConfirmingHistoryClear = true
@@ -128,9 +129,10 @@ struct DashboardView: View {
               Text(
                 L10n.text(
                   "dashboard.historyCollecting",
-                  fallback: "Collecting temperature history…"))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 100)
+                  fallback: "Collecting temperature history…")
+              )
+              .foregroundStyle(.secondary)
+              .frame(maxWidth: .infinity, minHeight: 100)
             }
           }
 
@@ -262,10 +264,12 @@ struct DashboardView: View {
         dashboardHeader(
           title: L10n.text("dashboard.curves", fallback: "Curves"),
           subtitle: L10n.text(
-            "dashboard.curvesSubtitle", fallback: "Custom points and response behavior"))
+            "dashboard.curvesSubtitle", fallback: "Automatic planning and advanced custom points"))
 
         DashboardCard(
-          title: L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor"),
+          title: state.fanCurveMode == .automatic
+            ? L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C")
+            : L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor"),
           systemImage: "slider.horizontal.3"
         ) {
           CurveEditorView(state: state)
