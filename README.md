@@ -201,9 +201,10 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 
 ### Milestone 15 — Automatic temperature planning
 
-- Automatic is the default curve profile; no point editing is required
+- Breeze Full Automatic is the default curve profile; no point editing is required
 - The hotter CPU/GPU reading maps linearly from 45 °C at 20% fan range to 90 °C at 100%
-- Output changes in safe 5% steps instead of holding one fixed preset RPM
+- Output has 17 safe targets (20%, 25%, …, 100%) instead of four temperature stages or one fixed preset RPM
+- Balanced, Cool, and Max remain separate controls that run only when the user explicitly selects those fixed presets
 - Rising temperatures apply immediately; decreases use a 2 °C hysteresis and 3-second delay
 - Active temperature control keeps one-second hardware polling even with Breeze windows closed
 - Existing custom points remain available under **Advanced Custom** and are not deleted by migration

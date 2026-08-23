@@ -268,7 +268,7 @@ struct DashboardView: View {
 
         DashboardCard(
           title: state.fanCurveMode == .automatic
-            ? L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C")
+            ? L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C")
             : L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor"),
           systemImage: "slider.horizontal.3"
         ) {

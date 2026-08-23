@@ -56,7 +56,7 @@ struct SettingsView: View {
             get: { state.fanCurveMode },
             set: { state.setFanCurveMode($0) })
         ) {
-          Text(L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C"))
+          Text(L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C"))
             .tag(FanCurveMode.automatic)
           Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
             .tag(FanCurveMode.custom)
@@ -137,6 +137,7 @@ struct SettingsView: View {
   private var curveStageTitle: String {
     switch state.fanCurveStage {
     case .automatic: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic")
+    case .dynamic: L10n.text("mode.fullAutomatic", fallback: "Breeze Full Automatic")
     case .quiet: L10n.text("mode.quiet", fallback: "Quiet")
     case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
     case .cool: L10n.text("mode.cool", fallback: "Cool")

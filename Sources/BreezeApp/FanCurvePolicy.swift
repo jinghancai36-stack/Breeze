@@ -10,6 +10,7 @@ enum FanCurveStage: Int, CaseIterable, Equatable, Sendable {
   case balanced
   case cool
   case max
+  case dynamic
 }
 
 enum FanCurvePolicy {
@@ -32,7 +33,7 @@ enum FanCurvePolicy {
 
   static func stage(for temperature: Double, previous: FanCurveStage) -> FanCurveStage {
     switch previous {
-    case .automatic:
+    case .automatic, .dynamic:
       if temperature >= maxEntryTemperature { return .max }
       if temperature >= coolEntryTemperature { return .cool }
       if temperature >= balancedEntryTemperature { return .balanced }

@@ -38,7 +38,7 @@ private struct MontereyCurveEditor: View {
       VStack(alignment: .leading, spacing: 3) {
         Text(
           state.fanCurveMode == .automatic
-            ? L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C")
+            ? L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C")
             : L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor")
         )
         .font(.title2.bold())
@@ -61,7 +61,7 @@ private struct MontereyCurveEditor: View {
           get: { state.fanCurveMode },
           set: { state.setFanCurveMode($0) })
       ) {
-        Text(L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C"))
+        Text(L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C"))
           .tag(FanCurveMode.automatic)
         Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
           .tag(FanCurveMode.custom)

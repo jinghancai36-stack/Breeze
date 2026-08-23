@@ -36,7 +36,7 @@ struct MontereySettingsView: View {
                 get: { state.fanCurveMode },
                 set: { state.setFanCurveMode($0) })
             ) {
-              Text(L10n.text("curve.profileAutomatic", fallback: "Automatic 45–90°C"))
+              Text(L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C"))
                 .tag(FanCurveMode.automatic)
               Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
                 .tag(FanCurveMode.custom)

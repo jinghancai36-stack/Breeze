@@ -382,9 +382,10 @@ struct AppStateTests {
       try await Task.sleep(nanoseconds: 10_000_000)
     }
     state.enableFanCurve()
-    for _ in 0..<50 where state.fanCurveStage != .cool {
+    for _ in 0..<50 where state.fanCurveTargetPercent != 75 {
       try await Task.sleep(nanoseconds: 10_000_000)
     }
+    #expect(state.fanCurveStage == .dynamic)
 
     monitor.setTemperature(nil)
     await state.refreshForTesting()
@@ -419,7 +420,7 @@ struct AppStateTests {
     }
 
     #expect(state.isFanCurveEnabled)
-    #expect(state.fanCurveStage == .cool)
+    #expect(state.fanCurveStage == .dynamic)
     #expect(state.activeControlMode == .curve)
     #expect(client.curveTargetPercents == [75])
     #expect(state.fanCurveTargetPercent == 75)
@@ -453,10 +454,11 @@ struct AppStateTests {
     }
 
     state.enableFanCurve()
-    for _ in 0..<50 where state.fanCurveStage != .quiet || client.renewalCount == 0 {
+    for _ in 0..<50 where state.fanCurveTargetPercent != 20 || client.renewalCount == 0 {
       try await Task.sleep(nanoseconds: 10_000_000)
     }
     #expect(state.isFanCurveEnabled)
+    #expect(state.fanCurveStage == .dynamic)
     #expect(state.activeControlMode == .curve)
     #expect(client.curveTargetPercents == [20])
     #expect(client.restoreCount == 0)
@@ -464,9 +466,10 @@ struct AppStateTests {
 
     monitor.setTemperature(55)
     await state.refreshForTesting()
-    for _ in 0..<50 where state.fanCurveStage != .balanced {
+    for _ in 0..<50 where state.fanCurveTargetPercent != 40 {
       try await Task.sleep(nanoseconds: 10_000_000)
     }
+    #expect(state.fanCurveStage == .dynamic)
     #expect(client.curveTargetPercents == [20, 40])
     #expect(client.restoreCount == 0)
     #expect(state.isFanCurveEnabled)

@@ -422,6 +422,9 @@ struct MenuBarView: View {
 
   private var activeControlTitle: String {
     if state.isFanCurveEnabled {
+      if state.fanCurveMode == .automatic {
+        return L10n.text("mode.fullAutomatic", fallback: "Breeze Full Automatic")
+      }
       return L10n.format("curve.titleStage", fallback: "Automatic Curve · %@", fanCurveStageTitle)
     }
     return switch state.activeControlMode {
@@ -437,6 +440,7 @@ struct MenuBarView: View {
   private var fanCurveStageTitle: String {
     switch state.fanCurveStage {
     case .automatic: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic")
+    case .dynamic: L10n.text("mode.fullAutomatic", fallback: "Breeze Full Automatic")
     case .quiet: L10n.text("mode.quiet", fallback: "Quiet")
     case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
     case .cool: L10n.text("mode.cool", fallback: "Cool")

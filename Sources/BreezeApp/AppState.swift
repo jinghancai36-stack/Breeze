@@ -503,7 +503,8 @@ final class AppState: ObservableObject {
         // Active automatic control stays on the one-second cadence even when
         // every Breeze window is closed, so load changes are not delayed by
         // the quieter background-monitoring interval.
-        let seconds = isFanCurveEnabled
+        let seconds =
+          isFanCurveEnabled
           ? MonitoringPolicy.visibleRefreshInterval
           : MonitoringPolicy.refreshInterval(isPopoverVisible: isPopoverVisible)
         try await TaskSleepCompatibility.sleep(for: seconds)
@@ -694,7 +695,7 @@ final class AppState: ObservableObject {
 
     applyPreset(
       mode: .curve,
-      curveStage: curveStage(for: targetPercent),
+      curveStage: fanCurveMode == .automatic ? .dynamic : curveStage(for: targetPercent),
       curveTargetPercent: targetPercent
     ) { [helperClient] completion in
       helperClient.applyCurveTarget(percent: targetPercent, completion: completion)

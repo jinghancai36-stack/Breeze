@@ -7,6 +7,8 @@ Validation target: the verified `MacBookPro18,3` two-fan control path, using the
 - At or below 45 °C, the target is 20% of each fan's independently detected range.
 - At or above 90 °C, the target is 100%.
 - Between those limits, Breeze uses linear interpolation quantized to 5% steps.
+- This produces 17 safe targets from 20% through 100%; it is not a four-stage preset policy.
+- Balanced, Cool, and Max are independent manual presets and are never used to label Full Automatic decisions.
 - Temperature increases apply immediately.
 - Decreases require a 2 °C hysteresis and remain stable for 3 seconds.
 - An active curve uses one-second monitoring even when Breeze windows are closed.
