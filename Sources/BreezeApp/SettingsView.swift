@@ -63,6 +63,15 @@ struct SettingsView: View {
         }
         .disabled(state.isFanCurveEnabled)
 
+        Toggle(
+          L10n.text(
+            "curve.resumeAutomatically", fallback: "Resume Full Automatic after login or wake"),
+          isOn: Binding(
+            get: { state.automaticallyResumeFullAutomatic },
+            set: { state.setAutomaticallyResumeFullAutomatic($0) })
+        )
+        .disabled(state.fanCurveMode != .automatic)
+
         LabeledContent(L10n.text("curve.sensor", fallback: "Control sensor")) {
           Text(curveSensorTitle)
         }
@@ -86,11 +95,7 @@ struct SettingsView: View {
         ForEach(Array(state.effectiveFanCurveConfiguration.points.enumerated()), id: \.element.id) {
           index, point in
           curveThresholdRow(
-            stage: state.fanCurveMode == .automatic
-              ? (index == 0
-                ? L10n.text("curve.idlePoint", fallback: "Idle")
-                : L10n.text("curve.maximumPoint", fallback: "Maximum"))
-              : L10n.format("curve.pointNumber", fallback: "Point %d", index + 1),
+            stage: curvePointTitle(index: index),
             range: "\(point.temperature) °C · \(point.fanPercent)%")
         }
       } header: {
@@ -104,7 +109,7 @@ struct SettingsView: View {
             ? L10n.text(
               "curve.automaticDescription",
               fallback:
-                "Breeze continuously maps the hotter CPU/GPU temperature from 45°C at 20% to 90°C at 100%, in safe 5% steps. Rising temperatures apply immediately; decreases use a 2°C hysteresis and 3-second delay."
+                "Breeze uses a quiet low-temperature curve, accelerates cooling above 70°C, and leads rapidly rising temperatures by up to 5°C. Targets remain in safe 5% steps; decreases use a 2°C hysteresis and 3-second delay."
             )
             : L10n.text(
               "curve.hysteresis",
@@ -118,7 +123,7 @@ struct SettingsView: View {
           L10n.text(
             "curve.safetyBody",
             fallback:
-              "While enabled, every interpolated curve target remains under Breeze's watchdog. The curve starts disabled after every launch and wake, and any Helper or watchdog failure returns control to Apple."
+              "Every target remains under Breeze's watchdog. Automatic resume is off by default; when enabled it restores Full Automatic after login or wake. Any Helper or watchdog failure returns control to Apple."
           )
         )
         .font(.caption)
@@ -132,6 +137,17 @@ struct SettingsView: View {
 
   private func curveThresholdRow(stage: String, range: String) -> some View {
     LabeledContent(stage, value: range)
+  }
+
+  private func curvePointTitle(index: Int) -> String {
+    guard state.fanCurveMode == .automatic else {
+      return L10n.format("curve.pointNumber", fallback: "Point %d", index + 1)
+    }
+    if index == 0 { return L10n.text("curve.idlePoint", fallback: "Idle") }
+    if index == state.effectiveFanCurveConfiguration.points.count - 1 {
+      return L10n.text("curve.maximumPoint", fallback: "Maximum")
+    }
+    return L10n.format("curve.pointNumber", fallback: "Point %d", index + 1)
   }
 
   private var curveStageTitle: String {
@@ -200,7 +216,7 @@ struct SettingsView: View {
           L10n.text(
             "settings.safetyBody",
             fallback:
-              "Breeze always starts in Apple Automatic mode and never resumes an active fan mode after relaunch or wake."
+              "Breeze starts safely in Apple Automatic. Full Automatic resumes after login or wake only when its opt-in setting is enabled."
           )
         )
         .font(.caption)

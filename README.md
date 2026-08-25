@@ -12,7 +12,7 @@ Breeze is a SwiftUI menu bar app that displays high-value temperatures and fan R
 - Native macOS menu bar UI with Light and Dark Mode support
 - CPU, GPU, memory, battery, and fan summaries where available
 - Automatic, Quiet curve, Balanced, Cool, Max, and per-fan Manual controls
-- Opt-in automatic temperature control that continuously maps the higher CPU/GPU temperature from 45 °C at 20% to 90 °C at 100%
+- Full Automatic temperature control with a quiet low-temperature region, stronger cooling above 70 °C, and bounded rise-trend anticipation
 - Targets derived from each fan's detected minimum and maximum RPM
 - Root Helper with a narrow, typed XPC boundary and strict peer validation
 - Fixed 15-second safety lease renewed by the GUI every 5 seconds
@@ -169,7 +169,7 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - Quiet uses 20% of each fan's independently detected range and remains under the Helper watchdog
 - Hysteresis releases Max below 82 °C, Cool below 68 °C, and Balanced back to Quiet at 52 °C
 - Stage changes are atomic preset transactions and never hand low-temperature control back to Apple while the curve is enabled
-- The curve starts disabled after launch and wake, and disables itself after Helper or watchdog failure
+- The curve starts disabled after launch and wake unless the user opts into Full Automatic resume; Helper or watchdog failure still disables it
 - English source interface and a Simplified Chinese String Catalog
 - The interface follows the language selected for Breeze in macOS
 - Developer diagnostic: `--helper-quiet`
@@ -202,11 +202,13 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 ### Milestone 15 — Automatic temperature planning
 
 - Breeze Full Automatic is the default curve profile; no point editing is required
-- The hotter CPU/GPU reading maps linearly from 45 °C at 20% fan range to 90 °C at 100%
+- The hotter CPU/GPU reading follows a quiet-to-aggressive plan: 45/20%, 60/25%, 70/45%, 80/70%, 85/85%, and 90/100%
 - Output has 17 safe targets (20%, 25%, …, 100%) instead of four temperature stages or one fixed preset RPM
 - Balanced, Cool, and Max remain separate controls that run only when the user explicitly selects those fixed presets
+- A rapid temperature rise can lead the planning temperature by at most 5 °C for earlier cooling without exceeding the same bounded curve
 - Rising temperatures apply immediately; decreases use a 2 °C hysteresis and 3-second delay
 - Active temperature control keeps one-second hardware polling even with Breeze windows closed
+- Optional Full Automatic resume is off by default and can be enabled for login and wake
 - Existing custom points remain available under **Advanced Custom** and are not deleted by migration
 - Automated results are recorded in [Milestone 15 Validation](docs/VALIDATION_M15.md)
 
@@ -236,7 +238,7 @@ From a clean commit, create a source-only archive and SHA-256 checksum with:
 ./scripts/package-source.sh
 ```
 
-Read [Installation and Recovery](docs/INSTALLATION_AND_RECOVERY.md) before installing or removing the Helper. See [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), and the [v0.8.0 release notes](docs/releases/v0.8.0.md) for publication details.
+Read [Installation and Recovery](docs/INSTALLATION_AND_RECOVERY.md) before installing or removing the Helper. See [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), and the [v0.12.0 release notes](docs/releases/v0.12.0.md) for publication details.
 
 ## Contributing
 

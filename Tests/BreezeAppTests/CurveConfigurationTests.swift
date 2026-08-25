@@ -33,7 +33,7 @@ struct CurveConfigurationTests {
     let configuration = FanCurveConfiguration.automatic
 
     #expect(configuration.isValid)
-    #expect(configuration.points.map(\.temperature) == [45, 90])
+    #expect(configuration.points.map(\.temperature) == [45, 60, 70, 80, 85, 90])
     #expect(
       CustomFanCurvePolicy.interpolatedPercent(
         for: 35, configuration: configuration) == 20)
@@ -42,16 +42,31 @@ struct CurveConfigurationTests {
         for: 45, configuration: configuration) == 20)
     #expect(
       CustomFanCurvePolicy.interpolatedPercent(
-        for: 55, configuration: configuration) == 40)
+        for: 55, configuration: configuration) == 25)
     #expect(
       CustomFanCurvePolicy.interpolatedPercent(
-        for: 70, configuration: configuration) == 65)
+        for: 70, configuration: configuration) == 45)
     #expect(
       CustomFanCurvePolicy.interpolatedPercent(
         for: 90, configuration: configuration) == 100)
     #expect(
       CustomFanCurvePolicy.interpolatedPercent(
         for: 100, configuration: configuration) == 100)
+  }
+
+  @Test("Automatic planning leads a rapidly rising temperature")
+  func automaticRiseLead() {
+    var state = FanCurveDecisionState()
+    let start = Date(timeIntervalSince1970: 1_000)
+
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 70, configuration: .automatic, state: &state, now: start,
+        riseLeadSeconds: 3) == 45)
+    #expect(
+      CustomFanCurvePolicy.nextTarget(
+        temperature: 72, configuration: .automatic, state: &state,
+        now: start.addingTimeInterval(1), riseLeadSeconds: 3) == 65)
   }
 
   @Test("Invalid or descending points are rejected")
@@ -220,6 +235,18 @@ struct CurveConfigurationTests {
     #expect(store.load() == .custom)
     defaults.set("invalid", forKey: "fanCurveMode.v1")
     #expect(store.load() == .automatic)
+  }
+
+  @Test("Full Automatic resume is opt-in and persists")
+  func automaticResumePersistence() throws {
+    let suite = "BreezeAutomaticResumeTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let store = AutomaticResumeStore(defaults: defaults)
+
+    #expect(!store.load())
+    store.save(true)
+    #expect(store.load())
   }
 
   @Test("Thermal history persists in order, stays bounded, and can be cleared")

@@ -44,6 +44,7 @@ final class AppState: ObservableObject {
   @Published private(set) var fanCurveTemperature: Double?
   @Published private(set) var fanCurveTargetPercent: Int?
   @Published private(set) var fanCurveMode: FanCurveMode
+  @Published private(set) var automaticallyResumeFullAutomatic: Bool
   @Published private(set) var fanCurveConfiguration: FanCurveConfiguration
   @Published private(set) var thermalHistory: [ThermalHistorySample] = []
 
@@ -54,12 +55,14 @@ final class AppState: ObservableObject {
   private let helperClient: any HelperCommunicating
   private let curveConfigurationStore: CurveConfigurationStore
   private let curveModeStore: CurveModeStore
+  private let automaticResumeStore: AutomaticResumeStore
   private let thermalHistoryStore: ThermalHistoryStore
   private let terminateApp: @MainActor () -> Void
   private var pollingTask: Task<Void, Never>?
   private var leaseHeartbeatTask: Task<Void, Never>?
   private var controlRequestGeneration = 0
   private var fanCurveDecisionState = FanCurveDecisionState()
+  private var pendingFullAutomaticResume = false
   private var historySamplesSinceSave = 0
   private var workspaceObservers: [NSObjectProtocol] = []
 
@@ -69,6 +72,7 @@ final class AppState: ObservableObject {
     helperClient: any HelperCommunicating = HelperClient(),
     curveConfigurationStore: CurveConfigurationStore = CurveConfigurationStore(),
     curveModeStore: CurveModeStore = CurveModeStore(),
+    automaticResumeStore: AutomaticResumeStore = AutomaticResumeStore(),
     thermalHistoryStore: ThermalHistoryStore = ThermalHistoryStore(),
     terminateApp: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) }
   ) {
@@ -76,8 +80,10 @@ final class AppState: ObservableObject {
     self.helperClient = helperClient
     self.curveConfigurationStore = curveConfigurationStore
     self.curveModeStore = curveModeStore
+    self.automaticResumeStore = automaticResumeStore
     self.thermalHistoryStore = thermalHistoryStore
     fanCurveMode = curveModeStore.load()
+    automaticallyResumeFullAutomatic = automaticResumeStore.load()
     fanCurveConfiguration = curveConfigurationStore.load()
     thermalHistory = thermalHistoryStore.load()
     self.terminateApp = terminateApp
@@ -100,8 +106,10 @@ final class AppState: ObservableObject {
     helperClient = PreviewHelperClient()
     curveConfigurationStore = CurveConfigurationStore()
     curveModeStore = CurveModeStore()
+    automaticResumeStore = AutomaticResumeStore()
     thermalHistoryStore = ThermalHistoryStore()
     fanCurveMode = .automatic
+    automaticallyResumeFullAutomatic = false
     fanCurveConfiguration = .default
     terminateApp = {}
     helperStatus = .enabled
@@ -114,6 +122,7 @@ final class AppState: ObservableObject {
 
   func start() {
     guard pollingTask == nil else { return }
+    pendingFullAutomaticResume = automaticallyResumeFullAutomatic && fanCurveMode == .automatic
     installWorkspaceObservers()
     refreshHelperStatus()
     if helperStatus == .enabled { pingHelper() }
@@ -232,6 +241,7 @@ final class AppState: ObservableObject {
         case .success(let version):
           self.helperVersion = version
           self.helperErrorMessage = nil
+          self.attemptPendingFullAutomaticResume()
         case .failure(let error):
           self.helperVersion = nil
           self.helperErrorMessage = error.localizedDescription
@@ -454,6 +464,7 @@ final class AppState: ObservableObject {
           self.helperErrorMessage = error.localizedDescription
         }
         completion?()
+        self.attemptPendingFullAutomaticResume()
       }
     }
   }
@@ -585,6 +596,7 @@ final class AppState: ObservableObject {
       isLoading = false
       appendHistory(from: updated)
       evaluateFanCurve(using: updated)
+      attemptPendingFullAutomaticResume()
       logger.debug(
         "Updated read-only snapshot: fans=\(updated.fans.count, privacy: .public) sensors=\(updated.sensors.count, privacy: .public)"
       )
@@ -610,6 +622,8 @@ final class AppState: ObservableObject {
         [weak self] _ in
         Task { @MainActor in
           self?.isSleeping = true
+          self?.pendingFullAutomaticResume =
+            self?.automaticallyResumeFullAutomatic == true && self?.fanCurveMode == .automatic
           self?.deactivateFanCurve()
           self?.logger.info("System will sleep; pausing read-only polling")
           self?.restoreAutomaticControl()
@@ -624,7 +638,11 @@ final class AppState: ObservableObject {
           self.isSleeping = false
           self.logger.info("System woke; refreshing hardware state")
           await self.refresh()
-          self.checkAutomaticControl()
+          if self.pendingFullAutomaticResume {
+            self.attemptPendingFullAutomaticResume()
+          } else {
+            self.checkAutomaticControl()
+          }
         }
       }
     )
@@ -690,7 +708,8 @@ final class AppState: ObservableObject {
         temperature: temperature,
         configuration: configuration,
         state: &fanCurveDecisionState,
-        now: Date())
+        now: Date(),
+        riseLeadSeconds: fanCurveMode == .automatic ? 3 : 0)
     else { return }
 
     applyPreset(
@@ -715,9 +734,29 @@ final class AppState: ObservableObject {
     guard !isFanCurveEnabled, fanCurveMode != mode else { return }
     fanCurveMode = mode
     curveModeStore.save(mode)
+    if mode != .automatic, automaticallyResumeFullAutomatic {
+      setAutomaticallyResumeFullAutomatic(false)
+    }
     fanCurveDecisionState.reset()
     fanCurveTemperature = nil
     fanCurveTargetPercent = nil
+  }
+
+  func setAutomaticallyResumeFullAutomatic(_ enabled: Bool) {
+    guard !enabled || fanCurveMode == .automatic else { return }
+    automaticallyResumeFullAutomatic = enabled
+    automaticResumeStore.save(enabled)
+    if !enabled { pendingFullAutomaticResume = false }
+  }
+
+  private func attemptPendingFullAutomaticResume() {
+    guard pendingFullAutomaticResume,
+      automaticallyResumeFullAutomatic,
+      fanCurveMode == .automatic,
+      !isSleeping
+    else { return }
+    enableFanCurve()
+    if isFanCurveEnabled { pendingFullAutomaticResume = false }
   }
 
   var effectiveFanCurveConfiguration: FanCurveConfiguration {

@@ -212,7 +212,7 @@ struct CurveEditorView: View {
           ? L10n.text(
             "curve.automaticDescription",
             fallback:
-              "Breeze continuously maps the hotter CPU/GPU temperature from 45°C at 20% to 90°C at 100%, in safe 5% steps. Rising temperatures apply immediately; decreases use a 2°C hysteresis and 3-second delay."
+              "Breeze uses a quiet low-temperature curve, accelerates cooling above 70°C, and leads rapidly rising temperatures by up to 5°C. Targets remain in safe 5% steps; decreases use a 2°C hysteresis and 3-second delay."
           )
           : L10n.text(
             "curve.dragHint",

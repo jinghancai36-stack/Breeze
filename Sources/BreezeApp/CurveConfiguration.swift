@@ -62,6 +62,10 @@ struct FanCurveConfiguration: Codable, Equatable, Sendable {
     sensorSource: .cpuGPUPeak,
     points: [
       FanCurvePoint(temperature: 45, fanPercent: 20),
+      FanCurvePoint(temperature: 60, fanPercent: 25),
+      FanCurvePoint(temperature: 70, fanPercent: 45),
+      FanCurvePoint(temperature: 80, fanPercent: 70),
+      FanCurvePoint(temperature: 85, fanPercent: 85),
       FanCurvePoint(temperature: 90, fanPercent: 100),
     ],
     hysteresis: 2,
@@ -236,6 +240,8 @@ struct FanCurveDecisionState: Equatable, Sendable {
   var appliedTemperature: Double?
   var pendingDecreasePercent: Int?
   var pendingDecreaseSince: Date?
+  var lastObservedTemperature: Double?
+  var lastObservationDate: Date?
 
   mutating func reset() {
     self = FanCurveDecisionState()
@@ -282,11 +288,14 @@ enum CustomFanCurvePolicy {
     temperature: Double,
     configuration: FanCurveConfiguration,
     state: inout FanCurveDecisionState,
-    now: Date
+    now: Date,
+    riseLeadSeconds: Double = 0
   ) -> Int? {
+    let planningTemperature = projectedTemperature(
+      from: temperature, state: &state, now: now, riseLeadSeconds: riseLeadSeconds)
     guard
       let candidate = interpolatedPercent(
-        for: temperature, configuration: configuration)
+        for: planningTemperature, configuration: configuration)
     else { return nil }
 
     guard let applied = state.appliedPercent else {
@@ -323,6 +332,29 @@ enum CustomFanCurvePolicy {
     else { return nil }
     record(candidate, temperature: temperature, state: &state)
     return candidate
+  }
+
+  private static func projectedTemperature(
+    from temperature: Double,
+    state: inout FanCurveDecisionState,
+    now: Date,
+    riseLeadSeconds: Double
+  ) -> Double {
+    defer {
+      state.lastObservedTemperature = temperature
+      state.lastObservationDate = now
+    }
+    guard riseLeadSeconds > 0,
+      let previousTemperature = state.lastObservedTemperature,
+      let previousDate = state.lastObservationDate
+    else { return temperature }
+
+    let elapsed = now.timeIntervalSince(previousDate)
+    guard (0.5...10).contains(elapsed), temperature > previousTemperature else {
+      return temperature
+    }
+    let projectedRise = (temperature - previousTemperature) / elapsed * riseLeadSeconds
+    return temperature + min(projectedRise, 5)
   }
 
   private static func quantize(_ percent: Double) -> Int {
@@ -388,6 +420,23 @@ struct CurveModeStore {
 
   func save(_ mode: FanCurveMode) {
     defaults.set(mode.rawValue, forKey: Self.key)
+  }
+}
+
+struct AutomaticResumeStore {
+  private static let key = "automaticallyResumeFullAutomatic.v1"
+  private let defaults: UserDefaults
+
+  init(defaults: UserDefaults = .standard) {
+    self.defaults = defaults
+  }
+
+  func load() -> Bool {
+    defaults.bool(forKey: Self.key)
+  }
+
+  func save(_ enabled: Bool) {
+    defaults.set(enabled, forKey: Self.key)
   }
 }
 

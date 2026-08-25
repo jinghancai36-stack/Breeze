@@ -4,7 +4,7 @@ import Security
 public enum BreezeHelperConstants {
   public static let machServiceName = "com.cai.Breeze.Helper"
   public static let launchDaemonPlistName = "com.cai.Breeze.Helper.plist"
-  public static let helperVersion = "0.11.0"
+  public static let helperVersion = "0.12.0"
 
   public static func peerSigningRequirement(identifier: String) -> String? {
     var code: SecCode?
