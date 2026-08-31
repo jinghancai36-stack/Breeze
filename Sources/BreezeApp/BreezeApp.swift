@@ -28,6 +28,7 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
   private var dashboardWindow: NSWindow?
   private var settingsWindow: NSWindow?
   private var cancellables: Set<AnyCancellable> = []
+  private var lastStatusItemTitle: String?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     let arguments = ProcessInfo.processInfo.arguments
@@ -321,6 +322,10 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
       button.action = #selector(togglePopover(_:))
       button.sendAction(on: [.leftMouseUp])
       button.imagePosition = .imageLeading
+      button.image = NSImage(systemSymbolName: "fan", accessibilityDescription: "Breeze")
+      button.font = NSFont.monospacedDigitSystemFont(
+        ofSize: NSFont.systemFontSize, weight: .regular)
+      button.toolTip = "Breeze"
     }
     popover.behavior = .transient
     popover.animates = true
@@ -355,25 +360,28 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
 
   private func updateStatusItem() {
     guard let button = statusItem.button else { return }
-    button.image = NSImage(systemSymbolName: "fan", accessibilityDescription: "Breeze")
-    let rawDisplay = UserDefaults.standard.string(forKey: PreferenceKey.menuBarDisplay)
+    let rawDisplay =
+      UserDefaults.standard.string(forKey: PreferenceKey.menuBarDisplay)
       ?? MenuBarDisplay.temperatureAndRPM.rawValue
     let display = MenuBarDisplay(rawValue: rawDisplay) ?? .temperatureAndRPM
     let temperature = state.snapshot?.primaryTemperature?.temperature
     let rpm = state.snapshot?.fans.first?.currentRPM
+    let title: String
     switch display {
     case .icon:
-      button.title = ""
+      title = ""
     case .temperature:
-      button.title = temperature.map { " \(Int($0.rounded()))°" } ?? " --°"
+      title = temperature.map { " \(Int($0.rounded()))°" } ?? " --°"
     case .rpm:
-      button.title = rpm.map { " \(Int($0.rounded()).formatted())" } ?? " --"
+      title = rpm.map { " \(Int($0.rounded()).formatted())" } ?? " --"
     case .temperatureAndRPM:
       let temperatureText = temperature.map { "\(Int($0.rounded()))°" } ?? "--°"
       let rpmText = rpm.map { Int($0.rounded()).formatted() } ?? "--"
-      button.title = " \(temperatureText)  \(rpmText)"
+      title = " \(temperatureText)  \(rpmText)"
     }
-    button.toolTip = "Breeze"
+    guard title != lastStatusItemTitle else { return }
+    lastStatusItemTitle = title
+    button.title = title
   }
 
   private func showDashboard() {
