@@ -29,6 +29,7 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
   private var settingsWindow: NSWindow?
   private var cancellables: Set<AnyCancellable> = []
   private var lastStatusItemTitle: String?
+  private var statusLabelHost: StatusLabelHostingView?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     let arguments = ProcessInfo.processInfo.arguments
@@ -381,6 +382,25 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
     }
     guard title != lastStatusItemTitle else { return }
     lastStatusItemTitle = title
+    if #available(macOS 14.0, *) {
+      let label = MenuBarLabel(display: display, snapshot: state.snapshot)
+      let host: StatusLabelHostingView
+      if let existing = statusLabelHost {
+        host = existing
+        host.rootView = label
+      } else {
+        host = StatusLabelHostingView(rootView: label)
+        statusLabelHost = host
+        button.image = nil
+        button.title = ""
+        button.addSubview(host)
+      }
+      let width = ceil(host.fittingSize.width)
+      statusItem.length = width
+      host.frame = NSRect(x: 0, y: 0, width: width, height: button.bounds.height)
+      button.setAccessibilityLabel(title.isEmpty ? "Breeze" : "Breeze, \(title)")
+      return
+    }
     button.title = title
   }
 
@@ -471,6 +491,12 @@ extension HelperRegistrationStatus {
   }
 }
 
+private final class StatusLabelHostingView: NSHostingView<MenuBarLabel> {
+  override func hitTest(_ point: NSPoint) -> NSView? {
+    nil  // Keep clicks on the enclosing status button and its existing popover action.
+  }
+}
+
 private struct MenuBarLabel: View {
   let display: MenuBarDisplay
   let snapshot: HardwareSnapshot?
@@ -479,10 +505,19 @@ private struct MenuBarLabel: View {
     HStack(spacing: 4) {
       Image(systemName: "fan")
       if let displayText {
-        Text(displayText)
-          .monospacedDigit()
+        if #available(macOS 14.0, *) {
+          Text(displayText)
+            .monospacedDigit()
+            .contentTransition(.numericText())
+            .animation(.easeInOut(duration: 0.2), value: displayText)
+        } else {
+          Text(displayText)
+            .monospacedDigit()
+        }
       }
     }
+    .font(.system(size: NSFont.systemFontSize))
+    .padding(.horizontal, 6)
     .accessibilityLabel(displayText.map { "Breeze, \($0)" } ?? "Breeze")
   }
 
