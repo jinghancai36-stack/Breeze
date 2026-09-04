@@ -396,8 +396,13 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
         button.addSubview(host)
       }
       let width = ceil(host.fittingSize.width)
-      statusItem.length = width
-      host.frame = NSRect(x: 0, y: 0, width: width, height: button.bounds.height)
+      if statusItem.length != width {
+        statusItem.length = width
+      }
+      let frame = NSRect(x: 0, y: 0, width: width, height: button.bounds.height)
+      if host.frame != frame {
+        host.frame = frame
+      }
       button.setAccessibilityLabel(title.isEmpty ? "Breeze" : "Breeze, \(title)")
       return
     }
@@ -504,16 +509,18 @@ private struct MenuBarLabel: View {
   var body: some View {
     HStack(spacing: 4) {
       Image(systemName: "fan")
-      if let displayText {
-        if #available(macOS 14.0, *) {
-          Text(displayText)
-            .monospacedDigit()
-            .contentTransition(.numericText())
-            .animation(.easeInOut(duration: 0.2), value: displayText)
-        } else {
-          Text(displayText)
-            .monospacedDigit()
+      if display == .temperature || display == .temperatureAndRPM {
+        HStack(spacing: 0) {
+          StatusNumber(
+            value: snapshot?.primaryTemperature.map { Int($0.temperature.rounded()) },
+            placeholder: "000")
+          Text("°")
         }
+      }
+      if display == .rpm || display == .temperatureAndRPM {
+        StatusNumber(
+          value: snapshot?.fans.first.map { Int($0.currentRPM.rounded()) },
+          placeholder: 10_000.formatted())
       }
     }
     .font(.system(size: NSFont.systemFontSize))
@@ -538,5 +545,28 @@ private struct MenuBarLabel: View {
   private var rpmText: String {
     guard let rpm = snapshot?.fans.first?.currentRPM else { return "--" }
     return Int(rpm.rounded()).formatted()
+  }
+}
+
+private struct StatusNumber: View {
+  let value: Int?
+  let placeholder: String
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    // Reserve space independently of the reading; only changing digits animate.
+    Text(placeholder)
+      .hidden()
+      .overlay(alignment: .trailing) {
+        if #available(macOS 14.0, *) {
+          Text(value.map { $0.formatted() } ?? "--")
+            .contentTransition(.numericText(value: Double(value ?? 0)))
+            .animation(
+              reduceMotion ? nil : .easeInOut(duration: 0.3), value: value)
+        } else {
+          Text(value.map { $0.formatted() } ?? "--")
+        }
+      }
+      .monospacedDigit()
   }
 }
