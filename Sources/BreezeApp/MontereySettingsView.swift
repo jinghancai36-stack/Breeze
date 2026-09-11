@@ -4,6 +4,7 @@ struct MontereySettingsView: View {
   @ObservedObject var state: AppState
   @AppStorage(PreferenceKey.menuBarDisplay)
   private var menuBarDisplay = MenuBarDisplay.temperatureAndRPM.rawValue
+  @State private var isConfirmingHistoryClear = false
 
   var body: some View {
     ScrollView {
@@ -30,18 +31,6 @@ struct MontereySettingsView: View {
                 set: { enabled in
                   if enabled { state.enableFanCurve() } else { state.disableFanCurve() }
                 }))
-            Picker(
-              L10n.text("curve.profile", fallback: "Control profile"),
-              selection: Binding(
-                get: { state.fanCurveMode },
-                set: { state.setFanCurveMode($0) })
-            ) {
-              Text(L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C"))
-                .tag(FanCurveMode.automatic)
-              Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
-                .tag(FanCurveMode.custom)
-            }
-            .disabled(state.isFanCurveEnabled)
             Toggle(
               L10n.text(
                 "curve.resumeAutomatically",
@@ -51,19 +40,38 @@ struct MontereySettingsView: View {
                 set: { state.setAutomaticallyResumeFullAutomatic($0) })
             )
             .disabled(state.fanCurveMode != .automatic)
-            Text(
-              state.fanCurveMode == .automatic
-                ? L10n.text(
-                  "curve.automaticDescription",
-                  fallback:
-                    "Breeze uses a quiet low-temperature curve, accelerates cooling above 70°C, and leads rapidly rising temperatures by up to 5°C. Targets remain in safe 5% steps; decreases use a 2°C hysteresis and 3-second delay."
-                )
-                : L10n.text(
-                  "curve.safetyBody",
-                  fallback: "Every curve target remains protected by the Breeze watchdog.")
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+          }
+          .padding(8)
+        }
+
+        GroupBox(label: Text(L10n.text("dashboard.curveEditor", fallback: "Curve Editor"))) {
+          MontereyCurveEditor(state: state)
+            .padding(8)
+        }
+
+        GroupBox(label: Text(L10n.text("dashboard.thermalHistory", fallback: "Thermal History"))) {
+          VStack(alignment: .leading, spacing: 12) {
+            HStack {
+              Text(
+                L10n.format(
+                  "dashboard.historySampleCount", fallback: "%d saved samples",
+                  state.thermalHistory.count))
+                .foregroundStyle(.secondary)
+              Spacer()
+              Button(L10n.text("action.clearHistory", fallback: "Clear History")) {
+                isConfirmingHistoryClear = true
+              }
+              .disabled(state.thermalHistory.isEmpty)
+            }
+            if #available(macOS 13.0, *), state.thermalHistory.count >= 2 {
+              ThermalHistoryChart(samples: state.thermalHistory)
+            } else {
+              Text(
+                L10n.text(
+                  "dashboard.historyCollecting", fallback: "Collecting temperature history…"))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 120)
+            }
           }
           .padding(8)
         }
@@ -105,6 +113,22 @@ struct MontereySettingsView: View {
           .foregroundStyle(.secondary)
       }
       .padding(24)
+    }
+    .frame(minWidth: 820, minHeight: 600)
+    .onAppear { state.refreshNow() }
+    .confirmationDialog(
+      L10n.text("dashboard.clearHistoryTitle", fallback: "Clear monitoring history?"),
+      isPresented: $isConfirmingHistoryClear
+    ) {
+      Button(L10n.text("action.clearHistory", fallback: "Clear History"), role: .destructive) {
+        state.clearThermalHistory()
+      }
+      Button(L10n.text("action.cancel", fallback: "Cancel"), role: .cancel) {}
+    } message: {
+      Text(
+        L10n.text(
+          "dashboard.clearHistoryBody",
+          fallback: "Saved temperature and fan-speed samples will be permanently removed."))
     }
   }
 

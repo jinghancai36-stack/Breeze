@@ -10,7 +10,6 @@ import SwiftUI
 
 struct MenuBarView: View {
   @ObservedObject var state: AppState
-  var showDashboardAction: () -> Void = {}
   var showSettingsAction: () -> Void = {}
 
   var body: some View {
@@ -32,13 +31,6 @@ struct MenuBarView: View {
         Text("Breeze")
           .font(.title2.weight(.semibold))
         Spacer()
-        Button {
-          showDashboard()
-        } label: {
-          Image(systemName: "macwindow")
-        }
-        .buttonStyle(.plain)
-        .help(L10n.text("action.openDashboard", fallback: "Open Breeze window"))
         Button {
           state.refreshNow()
         } label: {
@@ -400,10 +392,6 @@ struct MenuBarView: View {
 
   private func showSettings() {
     showSettingsAction()
-  }
-
-  private func showDashboard() {
-    showDashboardAction()
   }
 
   private var activeModeLabel: String {

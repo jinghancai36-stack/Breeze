@@ -23,7 +23,7 @@ struct MontereyDashboardView: View {
   }
 }
 
-private struct MontereyCurveEditor: View {
+struct MontereyCurveEditor: View {
   @ObservedObject var state: AppState
   @State private var draft: FanCurveConfiguration
   @State private var message: String?

@@ -25,7 +25,6 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
   private lazy var state = AppState()
   private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
   private let popover = NSPopover()
-  private var dashboardWindow: NSWindow?
   private var settingsWindow: NSWindow?
   private var cancellables: Set<AnyCancellable> = []
   private var lastStatusItemTitle: String?
@@ -334,7 +333,6 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
     popover.contentViewController = NSHostingController(
       rootView: MenuBarView(
         state: state,
-        showDashboardAction: { [weak self] in self?.showDashboard() },
         showSettingsAction: { [weak self] in self?.showSettings() }
       ))
 
@@ -409,23 +407,6 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
     button.title = title
   }
 
-  private func showDashboard() {
-    if let dashboardWindow {
-      present(dashboardWindow)
-      return
-    }
-    let rootView: AnyView
-    if #available(macOS 14.0, *) {
-      rootView = AnyView(DashboardView(state: state))
-    } else {
-      rootView = AnyView(MontereyDashboardView(state: state))
-    }
-    let window = makeWindow(
-      title: "Breeze", size: NSSize(width: 900, height: 620), rootView: rootView)
-    dashboardWindow = window
-    present(window)
-  }
-
   private func showSettings() {
     if let settingsWindow {
       present(settingsWindow)
@@ -439,7 +420,7 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
     }
     let window = makeWindow(
       title: L10n.text("action.settings", fallback: "Settings"),
-      size: NSSize(width: 500, height: 420),
+      size: NSSize(width: 820, height: 600),
       rootView: rootView)
     settingsWindow = window
     present(window)

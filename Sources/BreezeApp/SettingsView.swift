@@ -11,11 +11,18 @@ struct SettingsView: View {
   @AppStorage(PreferenceKey.menuBarDisplay)
   private var menuBarDisplay = MenuBarDisplay.temperatureAndRPM.rawValue
   @StateObject private var loginItem = LaunchAtLoginController()
+  @State private var isConfirmingHistoryClear = false
 
   var body: some View {
     TabView {
       general
         .tabItem { Label(L10n.text("tab.general", fallback: "General"), systemImage: "gear") }
+      monitoring
+        .tabItem {
+          Label(
+            L10n.text("dashboard.thermalHistory", fallback: "Monitoring"),
+            systemImage: "chart.line.uptrend.xyaxis")
+        }
       curve
         .tabItem {
           Label(L10n.text("tab.curve", fallback: "Fan Curve"), systemImage: "chart.xyaxis.line")
@@ -27,145 +34,115 @@ struct SettingsView: View {
       about
         .tabItem { Label(L10n.text("tab.about", fallback: "About"), systemImage: "info.circle") }
     }
-    .frame(width: 500, height: 420)
+    .frame(width: 820, height: 600)
     .onAppear {
       loginItem.refresh()
       state.refreshHelperStatus()
+      state.refreshNow()
+    }
+    .confirmationDialog(
+      L10n.text("dashboard.clearHistoryTitle", fallback: "Clear monitoring history?"),
+      isPresented: $isConfirmingHistoryClear
+    ) {
+      Button(L10n.text("action.clearHistory", fallback: "Clear History"), role: .destructive) {
+        state.clearThermalHistory()
+      }
+      Button(L10n.text("action.cancel", fallback: "Cancel"), role: .cancel) {}
+    } message: {
+      Text(
+        L10n.text(
+          "dashboard.clearHistoryBody",
+          fallback: "Saved temperature and fan-speed samples will be permanently removed."))
     }
   }
 
   private var curve: some View {
-    Form {
-      Section(L10n.text("curve.title", fallback: "Automatic Curve")) {
-        Toggle(
-          L10n.text("curve.enableSetting", fallback: "Enable Automatic Fan Curve"),
-          isOn: Binding(
-            get: { state.isFanCurveEnabled },
-            set: { enabled in
-              if enabled { state.enableFanCurve() } else { state.disableFanCurve() }
-            }
-          )
-        )
-        .disabled(
-          state.isApplyingPreset || state.isRestoringAutomaticControl
-            || !state.fansApplyingControl.isEmpty)
-
-        Picker(
-          L10n.text("curve.profile", fallback: "Control profile"),
-          selection: Binding(
-            get: { state.fanCurveMode },
-            set: { state.setFanCurveMode($0) })
-        ) {
-          Text(L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C"))
-            .tag(FanCurveMode.automatic)
-          Text(L10n.text("curve.profileCustom", fallback: "Advanced Custom"))
-            .tag(FanCurveMode.custom)
-        }
-        .disabled(state.isFanCurveEnabled)
-
-        Toggle(
-          L10n.text(
-            "curve.resumeAutomatically", fallback: "Resume Full Automatic after login or wake"),
-          isOn: Binding(
-            get: { state.automaticallyResumeFullAutomatic },
-            set: { state.setAutomaticallyResumeFullAutomatic($0) })
-        )
-        .disabled(state.fanCurveMode != .automatic)
-
-        LabeledContent(L10n.text("curve.sensor", fallback: "Control sensor")) {
-          Text(curveSensorTitle)
-        }
-        LabeledContent(L10n.text("curve.currentStage", fallback: "Current stage")) {
-          Text(curveStageTitle)
-        }
-        if let temperature = state.fanCurveTemperature {
-          LabeledContent(L10n.text("curve.controlTemperature", fallback: "Control temperature")) {
-            Text("\(temperature.formatted(.number.precision(.fractionLength(1)))) °C")
-              .monospacedDigit()
-          }
-        }
-        if let percent = state.fanCurveTargetPercent {
-          LabeledContent(L10n.text("curve.target", fallback: "Fan target")) {
-            Text("\(percent)%").monospacedDigit()
-          }
-        }
-      }
-
-      Section {
-        ForEach(Array(state.effectiveFanCurveConfiguration.points.enumerated()), id: \.element.id) {
-          index, point in
-          curveThresholdRow(
-            stage: curvePointTitle(index: index),
-            range: "\(point.temperature) °C · \(point.fanPercent)%")
-        }
-      } header: {
-        Text(
-          state.fanCurveMode == .automatic
-            ? L10n.text("curve.automaticPlan", fallback: "Automatic Plan")
-            : L10n.text("curve.thresholds", fallback: "Saved Curve Points"))
-      } footer: {
-        Text(
-          state.fanCurveMode == .automatic
-            ? L10n.text(
-              "curve.automaticDescription",
-              fallback:
-                "Breeze uses a quiet low-temperature curve, accelerates cooling above 70°C, and leads rapidly rising temperatures by up to 5°C. Targets remain in safe 5% steps; decreases use a 2°C hysteresis and 3-second delay."
+    ScrollView {
+      VStack(alignment: .leading, spacing: 18) {
+        GroupBox(L10n.text("curve.title", fallback: "Automatic Curve")) {
+          VStack(alignment: .leading, spacing: 12) {
+            Toggle(
+              L10n.text("curve.enableSetting", fallback: "Enable Automatic Fan Curve"),
+              isOn: Binding(
+                get: { state.isFanCurveEnabled },
+                set: { enabled in
+                  if enabled { state.enableFanCurve() } else { state.disableFanCurve() }
+                }
+              )
             )
-            : L10n.text(
-              "curve.hysteresis",
-              fallback:
-                "Rising targets apply immediately. Decreases use the saved hysteresis and delay to prevent rapid switching. Edit the curve in the Breeze window."
-            ))
+            .disabled(
+              state.isApplyingPreset || state.isRestoringAutomaticControl
+                || !state.fansApplyingControl.isEmpty)
+
+            Toggle(
+              L10n.text(
+                "curve.resumeAutomatically",
+                fallback: "Resume Full Automatic after login or wake"),
+              isOn: Binding(
+                get: { state.automaticallyResumeFullAutomatic },
+                set: { state.setAutomaticallyResumeFullAutomatic($0) })
+            )
+            .disabled(state.fanCurveMode != .automatic)
+
+            Text(
+              L10n.text(
+                "curve.safetyBody",
+                fallback:
+                  "Every target remains under Breeze's watchdog. Automatic resume is off by default; when enabled it restores Full Automatic after login or wake. Any Helper or watchdog failure returns control to Apple."
+              )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+          }
+          .padding(8)
+        }
+
+        GroupBox(L10n.text("dashboard.curveEditor", fallback: "Curve Editor")) {
+          CurveEditorView(state: state)
+            .padding(8)
+        }
       }
+      .padding(24)
+    }
+  }
 
-      Section(L10n.text("settings.safety", fallback: "Safety")) {
-        Text(
-          L10n.text(
-            "curve.safetyBody",
-            fallback:
-              "Every target remains under Breeze's watchdog. Automatic resume is off by default; when enabled it restores Full Automatic after login or wake. Any Helper or watchdog failure returns control to Apple."
-          )
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
+  private var monitoring: some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 18) {
+        HStack {
+          VStack(alignment: .leading, spacing: 3) {
+            Text(L10n.text("dashboard.thermalHistory", fallback: "Thermal History"))
+              .font(.title2.bold())
+            Text(
+              L10n.format(
+                "dashboard.historySampleCount", fallback: "%d saved samples",
+                state.thermalHistory.count)
+            )
+            .foregroundStyle(.secondary)
+          }
+          Spacer()
+          Button(L10n.text("action.clearHistory", fallback: "Clear History")) {
+            isConfirmingHistoryClear = true
+          }
+          .disabled(state.thermalHistory.isEmpty)
+        }
+
+        GroupBox {
+          if state.thermalHistory.count >= 2 {
+            ThermalHistoryChart(samples: state.thermalHistory)
+              .padding(8)
+          } else {
+            Text(
+              L10n.text(
+                "dashboard.historyCollecting", fallback: "Collecting temperature history…")
+            )
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 180)
+          }
+        }
       }
-    }
-    .formStyle(.grouped)
-    .padding()
-  }
-
-  private func curveThresholdRow(stage: String, range: String) -> some View {
-    LabeledContent(stage, value: range)
-  }
-
-  private func curvePointTitle(index: Int) -> String {
-    guard state.fanCurveMode == .automatic else {
-      return L10n.format("curve.pointNumber", fallback: "Point %d", index + 1)
-    }
-    if index == 0 { return L10n.text("curve.idlePoint", fallback: "Idle") }
-    if index == state.effectiveFanCurveConfiguration.points.count - 1 {
-      return L10n.text("curve.maximumPoint", fallback: "Maximum")
-    }
-    return L10n.format("curve.pointNumber", fallback: "Point %d", index + 1)
-  }
-
-  private var curveStageTitle: String {
-    switch state.fanCurveStage {
-    case .automatic: L10n.text("mode.appleAutomaticTitle", fallback: "Apple Automatic")
-    case .dynamic: L10n.text("mode.fullAutomatic", fallback: "Breeze Full Automatic")
-    case .quiet: L10n.text("mode.quiet", fallback: "Quiet")
-    case .balanced: L10n.text("mode.balanced", fallback: "Balanced")
-    case .cool: L10n.text("mode.cool", fallback: "Cool")
-    case .max: L10n.text("mode.max", fallback: "Max")
-    }
-  }
-
-  private var curveSensorTitle: String {
-    switch state.effectiveFanCurveConfiguration.sensorSource {
-    case .cpuGPUPeak: L10n.text("curve.sensorPeak", fallback: "CPU/GPU Peak")
-    case .cpu: L10n.text("temperature.cpu", fallback: "CPU")
-    case .gpu: L10n.text("temperature.gpu", fallback: "GPU")
+      .padding(24)
     }
   }
 
