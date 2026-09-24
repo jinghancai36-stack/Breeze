@@ -1,28 +1,5 @@
 import SwiftUI
 
-struct MontereyDashboardView: View {
-  @ObservedObject var state: AppState
-
-  var body: some View {
-    HStack(alignment: .top, spacing: 0) {
-      ScrollView {
-        MenuBarView(state: state)
-          .padding(.vertical, 8)
-      }
-      .frame(width: 420)
-
-      Divider()
-
-      ScrollView {
-        MontereyCurveEditor(state: state)
-          .padding(24)
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    .frame(minWidth: 820, minHeight: 560)
-  }
-}
-
 struct MontereyCurveEditor: View {
   @ObservedObject var state: AppState
   @State private var draft: FanCurveConfiguration
@@ -39,7 +16,7 @@ struct MontereyCurveEditor: View {
         Text(
           state.fanCurveMode == .automatic
             ? L10n.text("curve.profileAutomatic", fallback: "Breeze Full Automatic 45–90°C")
-            : L10n.text("dashboard.curveEditor", fallback: "Custom Curve Editor")
+            : L10n.text("curve.editorTitle", fallback: "Custom Curve")
         )
         .font(.title2.bold())
         Text(

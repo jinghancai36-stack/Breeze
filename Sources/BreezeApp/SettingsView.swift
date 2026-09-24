@@ -20,7 +20,7 @@ struct SettingsView: View {
       monitoring
         .tabItem {
           Label(
-            L10n.text("dashboard.thermalHistory", fallback: "Monitoring"),
+            L10n.text("tab.monitoring", fallback: "Monitoring"),
             systemImage: "chart.line.uptrend.xyaxis")
         }
       curve
@@ -98,7 +98,7 @@ struct SettingsView: View {
           .padding(8)
         }
 
-        GroupBox(L10n.text("dashboard.curveEditor", fallback: "Curve Editor")) {
+        GroupBox(L10n.text("curve.editorTitle", fallback: "Custom Curve")) {
           CurveEditorView(state: state)
             .padding(8)
         }

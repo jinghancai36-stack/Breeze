@@ -44,7 +44,7 @@ struct MontereySettingsView: View {
           .padding(8)
         }
 
-        GroupBox(label: Text(L10n.text("dashboard.curveEditor", fallback: "Curve Editor"))) {
+        GroupBox(label: Text(L10n.text("curve.editorTitle", fallback: "Custom Curve"))) {
           MontereyCurveEditor(state: state)
             .padding(8)
         }

@@ -67,7 +67,7 @@ After opening Breeze, use **Settings → Helper → Install Helper**. On macOS 1
 
 ## Interface
 
-The menu bar panel remains intentionally compact: thermal and fan readings appear first, followed by the optional automatic curve, fixed presets, independent Manual controls, Apple Automatic restoration, and visible safety status. A separate on-demand Breeze window provides Overview, Cooling, Curves, and Providers workspaces for richer controls without expanding the menu bar panel. It opens from the small window button in the panel header and stays closed during background login launch.
+The menu bar panel remains compact: thermal and fan readings appear first, followed by the optional automatic curve, fixed presets, independent Manual controls, Apple Automatic restoration, and visible safety status. Breeze has one Settings window, opened from the Settings button in the menu bar panel. Its tabs contain general preferences, saved thermal and fan history, the automatic and custom curve editor, hardware diagnostics, Helper management, and About information. The Settings window stays closed during background login launch.
 
 ## Diagnostic CLI
 
@@ -184,7 +184,7 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 
 ### Milestone 12 — Custom curves and history
 
-- Persistent four-point temperature-to-fan curve edited in the standalone Breeze window
+- Persistent temperature-to-fan curve edited in **Settings → Fan Curve**
 - CPU/GPU Peak, CPU-only, and GPU-only control sources
 - Linear interpolation quantized to bounded 5% targets, with immediate increases and configurable decrease hysteresis/delay
 - The Helper accepts only 20%–100% curve targets and independently converts them to each fan's verified RPM range as one atomic transaction
@@ -197,7 +197,7 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test -c rele
 - Curves support 2–6 points with stable identities and safe add/remove controls
 - New points are inserted into the largest available temperature span and inherit the existing interpolated 5% target
 - The latest 300 CPU/GPU and per-fan RPM samples persist across app restarts
-- History is validated on restore, saved in batches to limit disk writes, and can be explicitly cleared from the Overview page
+- History is validated on restore, saved in batches to limit disk writes, and can be explicitly cleared from **Settings → Monitoring**
 
 ### Milestone 15 — Automatic temperature planning
 
