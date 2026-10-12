@@ -28,7 +28,12 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
   private var settingsWindow: NSWindow?
   private var cancellables: Set<AnyCancellable> = []
   private var lastStatusItemTitle: String?
+  private var lastStatusItemDisplay: MenuBarDisplay?
+  private var lastStatusItemUpdateDate = Date.distantPast
+  private var statusLabelModel: StatusLabelModel?
   private var statusLabelHost: StatusLabelHostingView?
+
+  private static let backgroundStatusItemRefreshInterval: TimeInterval = 10
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     let arguments = ProcessInfo.processInfo.arguments
@@ -378,28 +383,50 @@ final class BreezeAppDelegate: NSObject, NSApplicationDelegate {
       let rpmText = rpm.map { Int($0.rounded()).formatted() } ?? "--"
       title = " \(temperatureText)  \(rpmText)"
     }
-    guard title != lastStatusItemTitle else { return }
+    let titleChanged = title != lastStatusItemTitle
+    let displayChanged = display != lastStatusItemDisplay
+    guard titleChanged || displayChanged else { return }
+
+    let now = Date()
+    if !displayChanged, !state.isPopoverVisible,
+      now.timeIntervalSince(lastStatusItemUpdateDate) < Self.backgroundStatusItemRefreshInterval
+    {
+      return
+    }
+
     lastStatusItemTitle = title
+    lastStatusItemDisplay = display
+    lastStatusItemUpdateDate = now
     if #available(macOS 14.0, *) {
-      let label = MenuBarLabel(display: display, snapshot: state.snapshot)
+      let temperatureValue = temperature.map { Int($0.rounded()) }
+      let rpmValue = rpm.map { Int($0.rounded()) }
       let host: StatusLabelHostingView
+      let shouldUpdateWidth: Bool
       if let existing = statusLabelHost {
         host = existing
-        host.rootView = label
+        shouldUpdateWidth = displayChanged
+        statusLabelModel?.update(
+          display: display, temperature: temperatureValue, rpm: rpmValue)
       } else {
-        host = StatusLabelHostingView(rootView: label)
+        let model = StatusLabelModel(
+          display: display, temperature: temperatureValue, rpm: rpmValue)
+        statusLabelModel = model
+        host = StatusLabelHostingView(rootView: MenuBarLabel(model: model))
         statusLabelHost = host
         button.image = nil
         button.title = ""
         button.addSubview(host)
+        shouldUpdateWidth = true
       }
-      let width = ceil(host.fittingSize.width)
-      if statusItem.length != width {
-        statusItem.length = width
-      }
-      let frame = NSRect(x: 0, y: 0, width: width, height: button.bounds.height)
-      if host.frame != frame {
-        host.frame = frame
+      if shouldUpdateWidth {
+        let width = ceil(host.fittingSize.width)
+        if statusItem.length != width {
+          statusItem.length = width
+        }
+        let frame = NSRect(x: 0, y: 0, width: width, height: button.bounds.height)
+        if host.frame != frame {
+          host.frame = frame
+        }
       }
       button.setAccessibilityLabel(title.isEmpty ? "Breeze" : "Breeze, \(title)")
       return
@@ -483,24 +510,44 @@ private final class StatusLabelHostingView: NSHostingView<MenuBarLabel> {
   }
 }
 
-private struct MenuBarLabel: View {
+private struct StatusLabelValue: Equatable {
   let display: MenuBarDisplay
-  let snapshot: HardwareSnapshot?
+  let temperature: Int?
+  let rpm: Int?
+}
+
+@MainActor
+private final class StatusLabelModel: ObservableObject {
+  @Published private(set) var value: StatusLabelValue
+
+  init(display: MenuBarDisplay, temperature: Int?, rpm: Int?) {
+    value = StatusLabelValue(display: display, temperature: temperature, rpm: rpm)
+  }
+
+  func update(display: MenuBarDisplay, temperature: Int?, rpm: Int?) {
+    let updated = StatusLabelValue(display: display, temperature: temperature, rpm: rpm)
+    guard updated != value else { return }
+    value = updated
+  }
+}
+
+private struct MenuBarLabel: View {
+  @ObservedObject var model: StatusLabelModel
 
   var body: some View {
     HStack(spacing: 4) {
       Image(systemName: "fan")
-      if display == .temperature || display == .temperatureAndRPM {
+      if model.value.display == .temperature || model.value.display == .temperatureAndRPM {
         HStack(spacing: 0) {
           StatusNumber(
-            value: snapshot?.primaryTemperature.map { Int($0.temperature.rounded()) },
+            value: model.value.temperature,
             placeholder: "000")
           Text("°")
         }
       }
-      if display == .rpm || display == .temperatureAndRPM {
+      if model.value.display == .rpm || model.value.display == .temperatureAndRPM {
         StatusNumber(
-          value: snapshot?.fans.first.map { Int($0.currentRPM.rounded()) },
+          value: model.value.rpm,
           placeholder: 10_000.formatted())
       }
     }
@@ -510,7 +557,7 @@ private struct MenuBarLabel: View {
   }
 
   private var displayText: String? {
-    switch display {
+    switch model.value.display {
     case .icon: nil
     case .temperature: temperatureText
     case .rpm: rpmText
@@ -519,13 +566,13 @@ private struct MenuBarLabel: View {
   }
 
   private var temperatureText: String {
-    guard let temperature = snapshot?.primaryTemperature?.temperature else { return "--°" }
-    return "\(Int(temperature.rounded()))°"
+    guard let temperature = model.value.temperature else { return "--°" }
+    return "\(temperature)°"
   }
 
   private var rpmText: String {
-    guard let rpm = snapshot?.fans.first?.currentRPM else { return "--" }
-    return Int(rpm.rounded()).formatted()
+    guard let rpm = model.value.rpm else { return "--" }
+    return rpm.formatted()
   }
 }
 
